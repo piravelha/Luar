@@ -273,14 +273,8 @@ def compile_source_code(source_code):
     return code
 
 
-text = """
-struct Person(name, age) = {
-    set_name(n) = Person(n, age)
-}
-
-println(Person("Ian", 5).set_name("Miguel"))
---> Person(Miguel, 5)
-"""
+with open("main.lua") as f:
+    text = f.read()
 
 with open("out.lua", "w") as f:
     f.write(compile_source_code(text))
