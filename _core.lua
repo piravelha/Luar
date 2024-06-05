@@ -46,10 +46,43 @@ function array(...)
             end
             return array(unpack(new))
         end,
+        reduce = function(default, fn)
+            local acc = default
+            for i, v in pairs(values) do
+                acc = fn({acc, v})
+            end
+            return acc
+        end,
+        find = function(needle)
+            for i, v in pairs(values) do
+                if v == needle then
+                    return i
+                end
+            end
+            return nil
+        end,
         ...,
     }, {
+        __type = "array",
         __tostring = function()
             return show(values)
+        end,
+        __add = function(_, other)
+            if not getmetatable(other) or getmetatable(other).__type ~= "array" then
+                error("attempt to perform add operation on an array and a non-array value ") 
+            end
+            local new = {}
+            for i, v in pairs(values) do
+                if type(i) == "number" then
+                    new[i] = v
+                end
+            end
+            for i, v in pairs(other) do
+                if type(i) == "number" then
+                    new[#new + 1] = v
+                end
+            end
+            return array(unpack(new))
         end
     })
 end

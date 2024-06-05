@@ -12,6 +12,7 @@ block: "do" statement* return_statement "end"
           | struct_declaration
           | function_call
           | method_statement
+          | assignent_statement
           | empty
 
 include_statement: "include" STRING
@@ -36,6 +37,8 @@ parameter_list: "(" (pattern ("," pattern)* ","?)? ")"
 
 inline_variable_declaration: "inline" NAME "=" expression
 
+assignent_statement: NAME ASSIGN expression
+
 variable_declaration: "local" pattern "=" expression
 
 ?pattern: name_pattern
@@ -49,8 +52,6 @@ rest_pattern: "..." NAME
 
 ?expression: log_expression
            | lambda_expression
-           | property_access
-           | method_access
            | if_expression
            | block
 
@@ -73,7 +74,9 @@ lambda_expression: lambda_parameters "to" expression
 
 ?add_expression: add_expression ADD mul_expression | mul_expression
 
-?mul_expression: mul_expression MUL unary_expression | unary_expression
+?mul_expression: mul_expression MUL bitwise_expression | bitwise_expression
+
+?bitwise_expression: bitwise_expression BITWISE unary_expression | unary_expression
 
 ?unary_expression: UNARY atom | atom
 
@@ -81,6 +84,8 @@ lambda_expression: lambda_parameters "to" expression
      | table
      | object
      | array
+     | property_access
+     | method_access
      | NUMBER
      | STRING
      | BOOLEAN
@@ -92,7 +97,9 @@ table: "{" (table_field ("," table_field)* ","?)? "}"
 
 table_field: "[" expression "]" "=" expression
 
-object: "{" (object_field ("," object_field)* ","?)? "}"
+object: "{" ((object_field | operator_field) ("," (object_field | operator_field))* ","?)? "}"
+
+operator_field: "operator" OPERATOR parameter_list "=" expression
 
 object_field: NAME parameter_list? "=" expression
 
@@ -100,7 +107,11 @@ array: "{" (expression ("," expression)* ","?)? "}"
 
 empty:
 
-UNARY: /not|-|\+|#/
+ASSIGN: /=|\+=|-=|\*=|\/=|%=|\^=|\/\/=|&=|\|=|~=|<<=|>>=/
+
+UNARY: /not|-|\+|#|~/
+
+BITWISE: /&|\||~|<<|>>/
 
 MUL: /\*|\/|%/
 
@@ -110,9 +121,11 @@ REL: /<|>|<=|>=/
 
 LOG: /and|or/
 
-EQ: /==|~=/
+EQ: /==|!=/
 
-NAME: /[a-zA-Z_][a-zA-Z_0-9]*/
+OPERATOR: /\+|-|\*|\/|unary_-|%|\^|\/\/|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#/
+
+NAME: /(?!true|false|and|or|not|to|if|then|else|local|inline|struct|include|do|operator)[a-zA-Z_][a-zA-Z_0-9]*/
 
 TEMPLATE_LITERAL: /`[^`]*`/
 

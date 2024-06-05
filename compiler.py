@@ -45,7 +45,7 @@ def compile_array(code, *values, **kwargs):
 def compile_name_pattern(code, name, **kwargs):
     indent = "  " * kwargs["indent"]
     param_index = kwargs.get("param_index", 1)
-    code += indent + f"local {name} = _args[{param_index}]"
+    code += indent + f"local {name} = _args[{param_index}]\n"
     return code
 
 def compile_array_pattern(code, *values, **kwargs):
@@ -96,15 +96,61 @@ def compile_object_field(code, *args, **kwargs):
         code += "\n" + indent + "end"
     return code
 
+def compile_operator_field(code, op_name, params, impl, **kwargs):
+    indent = "  " * kwargs["indent"]
+    op_to_name = {
+        "+": "add",
+        "-": "sub",
+        "unary_-": "unm",
+        "*": "mul",
+        "/": "div",
+        "//": "idiv",
+        "%": "mod",
+        "^": "pow",
+        "==": "eq",
+        "!=": "neq",
+        "<": "lt",
+        ">": "gt",
+        "<=": "lte",
+        ">=": "gte",
+        "|": "bor",
+        "&": "band",
+        "~": "bxor",
+        "<<": "shl",
+        ">>": "shr",
+        "unary_~": "bnot",
+        "unary_#": "len",
+    }
+    code += f"__{op_to_name[op_name]} = function(_, _args)\n"
+    code += indent + "  local _args = {_args}\n"
+    kwargs["param_index"] = 0
+    kwargs["indent"] += 1
+    for p in params.children:
+        kwargs["param_index"] += 1
+        code = compile_tree(code, p, **kwargs) 
+    code += indent + "  return "
+    code = compile_tree(code, impl, **kwargs)
+    code += "\n" + indent + "end"
+    return code
+
 def compile_object(code, *fields, **kwargs):
     indent = "  " * kwargs["indent"]
-    code += "{\n"
+    operators = []
+    code += "setmetatable({\n"
     kwargs["indent"] += 1
-    for i, f in enumerate(fields):
+    for f in fields:
+        if f.data == "object_field":
+            code += indent + "  "
+            code = compile_tree(code, f, **kwargs)
+            code += ",\n"
+        elif f.data == "operator_field":
+            operators.append(f)
+    code += indent + "}, {\n"
+    for f in operators:
         code += indent + "  "
         code = compile_tree(code, f, **kwargs)
         code += ",\n"
-    code += indent + "}"
+    code += indent + "})"
     return code
 
 def compile_table_field(code, key, value, **kwargs):
@@ -124,11 +170,16 @@ def compile_table(code, fields, **kwargs):
     return code
 
 def compile_unary_expression(code, op, value, **kwargs):
-    code += f"{op}"
+    if op == "not":
+        code += "not "
+    else:
+        code += f"{op}"
     code = compile_tree(code, value, **kwargs)
     return code
 
 def compile_binary_expression(code, left, op, right, **kwargs):
+    if op == "!=":
+        op = "~="
     code = compile_tree(code, left, **kwargs)
     code += f" {op} "
     code = compile_tree(code, right, **kwargs)
@@ -214,6 +265,15 @@ def compile_variable_declaration(code, name, value, **kwargs):
         code = compile_tree(code, name, **kwargs)
     return code
 
+def compile_assignment_statement(code, name, op, value, **kwargs):
+    if op == "=":
+        code += f"{name} = "
+        code = compile_tree(code, value, **kwargs)
+    else:
+        code += f"{name} = {name} {op} "
+        code = compile_tree(code, value, **kwargs)
+    return code
+
 def compile_struct_declaration(code, *args, **kwargs):
     indent = "  " * kwargs["indent"]
     if len(args) == 3:
@@ -226,9 +286,9 @@ def compile_struct_declaration(code, *args, **kwargs):
             kwargs["param_index"] += 1
             code = compile_tree(code, p, **kwargs)
             code += "\n"
-        code += indent + "  return setmetatable("
+        code += indent + "  return "
         code = compile_tree(code, body, **kwargs)
-        code += indent + ", {\n"
+        code = code[:-2].rstrip() + "\n"
         code += indent + f"    __name = \"{name}\",\n"
         code += indent + "    __args = {...},\n"
         code += indent + "  })\n"
@@ -315,6 +375,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_array_pattern(code, *tree.children, **kwargs)
     if tree.data == "object_field":
         return compile_object_field(code, *tree.children, **kwargs)
+    if tree.data == "operator_field":
+        return compile_operator_field(code, *tree.children, **kwargs)
     if tree.data == "object":
         return compile_object(code, *tree.children, **kwargs)
     if tree.data == "table_field":
@@ -323,7 +385,7 @@ def compile_tree(code, tree, **kwargs):
         return compile_table(code, *tree.children, **kwargs)
     if tree.data == "unary_expression":
         return compile_unary_expression(code, *tree.children, **kwargs)
-    if tree.data in ["mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
+    if tree.data in ["bitwise_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return compile_binary_expression(code, *tree.children, **kwargs)
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)

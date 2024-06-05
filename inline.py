@@ -31,6 +31,11 @@ def inline_object_field(tree, **kwargs):
     expr = inline_tree(expr, **kwargs)
     return Tree("object_field", [*name, expr])
 
+def inline_operator_field(tree, **kwargs):
+    name, params, expr = tree.children
+    expr = inline_tree(expr, **kwargs)
+    return Tree("operator_field", [name, params, expr])
+
 def inline_object(tree, **kwargs):
     fields = tree.children
     new = []
@@ -166,6 +171,8 @@ def inline_tree(tree, **kwargs):
         return inline_array(tree, **kwargs)
     if tree.data == "object_field":
         return inline_object_field(tree, **kwargs)
+    if tree.data == "operator_field":
+        return inline_operator_field(tree, **kwargs)
     if tree.data == "object":
         return inline_object(tree, **kwargs)
     if tree.data == "table_field":
