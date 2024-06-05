@@ -3,6 +3,33 @@ from parse import parser
 from inline import inline_tree
 import re
 
+function_env = {}
+
+
+op_to_name = {
+    "+": "add",
+    "-": "sub",
+    "unary_-": "unm",
+    "*": "mul",
+    "/": "div",
+    "//": "idiv",
+    "%": "mod",
+    "^": "pow",
+    "==": "eq",
+    "!=": "neq",
+    "<": "lt",
+    ">": "gt",
+    "<=": "lte",
+    ">=": "gte",
+    "|": "bor",
+    "&": "band",
+    "~": "bxor",
+    "<<": "shl",
+    ">>": "shr",
+    "unary_~": "bnot",
+    "unary_#": "len",
+}
+
 def compile_number(code, value, **kwargs):
     code += value
     return code
@@ -29,17 +56,84 @@ def compile_template_literal(code, value, **kwargs):
     code += f"({value}):format({", ".join(formats)})"
     return code
 
+def compile_operator(code, op, **kwargs):
+    indent = "  " * kwargs["indent"]
+    unary_ops = ["-", "~", "#"]
+    supported_ops = ["+", "-", "*", "/", "//", "%", "^", "==", "~=", "<", ">", "<=", ">=", "#"]
+    if op == "!=":
+        op = "~="
+    if op in supported_ops:
+        code += f"#OP:{op}#\n"
+        return code
+    if op in unary_ops:
+        code += "(function(a, b)\n"
+        code += indent + "  if b then\n"
+        if op == "~":
+            code += indent + f"    if type(a) ~= \"table\" then\n"
+            code += indent + f"      return _bxor(a, b)\n"
+            code += indent + "    end\n"
+            code += indent + f"    return getmetatable(a) and getmetatable(a).__bxor(a, b)\n"
+        else:
+            code += indent + f"    return {op}a\n"
+        code += indent + "  end\n"
+        if op == "~":
+            code += indent + f"  if type(a) ~= \"table\" then\n"
+            code += indent + f"    return _bnot(a)\n"
+            code += indent + "  end\n"
+            code += indent + f"  return getmetatable(a) and getmetatable(a).__bnot(a)\n"
+        else:
+            code += indent + f"  return {op}a\n"
+        code += indent + "end)"
+        return code
+    new_ops = ["//", "|", "&", "<<", ">>"]
+    code += "(function(a, b)\n"
+    if op in new_ops:
+        code += indent + "  if type(a) ~= \"table\" and type(b) ~= \"table\" then\n"
+        if op == "//":
+            code += indent + "    return _idiv(a, b)\n"
+        elif op == "|":
+            code += indent + "    return _bor(a, b)\n"
+        elif op == "&":
+            code += indent + "    return _band(a, b)\n"
+        elif op == "<<":
+            code += indent + "    return _shl(a, b)\n"
+        elif op == ">>":
+            code += indent + "    return _shr(a, b)\n"
+        else:
+            code += indent + f"    return a {op} b\n"
+        code += indent + "  end\n"
+        code += indent + f"  return getmetatable(a).__{op_to_name[op]}(a, b)\n"
+    else:
+        code += indent + f"  return a {op} b\n"
+    code += indent + "end)"
+    return code
+
+def compile_operator_alone(code, op, **kwargs):
+    op = op[1:-1]
+    indent = "  " * kwargs["indent"]
+    code += "(function(_args)\n"
+    code += indent + "  local a, b = _args[1], _args[2]\n"
+    code += indent + "  return "
+    kwargs["indent"] += 1
+    op = compile_operator("", op, **kwargs)
+    if m := re.match(r"#OP:(.+)#", op):
+        code += f"a {m.group(1)} b\n"
+    else:
+        code += f"{op}(a, b)\n"
+    code += indent + "end)"
+    return code
+
 def compile_name(code, value, **kwargs):
     code += value
     return code
 
 def compile_array(code, *values, **kwargs):
-    code += f"array("
+    code += "array{"
     for i, val in enumerate(values):
         code = compile_tree(code, val, **kwargs)
         if i < len(values) - 1:
             code += ", "
-    code += ")"
+    code += "}"
     return code
 
 def compile_name_pattern(code, name, **kwargs):
@@ -98,29 +192,6 @@ def compile_object_field(code, *args, **kwargs):
 
 def compile_operator_field(code, op_name, params, impl, **kwargs):
     indent = "  " * kwargs["indent"]
-    op_to_name = {
-        "+": "add",
-        "-": "sub",
-        "unary_-": "unm",
-        "*": "mul",
-        "/": "div",
-        "//": "idiv",
-        "%": "mod",
-        "^": "pow",
-        "==": "eq",
-        "!=": "neq",
-        "<": "lt",
-        ">": "gt",
-        "<=": "lte",
-        ">=": "gte",
-        "|": "bor",
-        "&": "band",
-        "~": "bxor",
-        "<<": "shl",
-        ">>": "shr",
-        "unary_~": "bnot",
-        "unary_#": "len",
-    }
     code += f"__{op_to_name[op_name]} = function(_, _args)\n"
     code += indent + "  local _args = {_args}\n"
     kwargs["param_index"] = 0
@@ -173,16 +244,25 @@ def compile_unary_expression(code, op, value, **kwargs):
     if op == "not":
         code += "not "
     else:
-        code += f"{op}"
+        op = compile_operator("", op, **kwargs)
+        if m := re.match(r"#OP:(.+)#", op):
+            code += f"{m.group(1)} "
+        else:
+            code += op
     code = compile_tree(code, value, **kwargs)
     return code
 
 def compile_binary_expression(code, left, op, right, **kwargs):
-    if op == "!=":
-        op = "~="
-    code = compile_tree(code, left, **kwargs)
-    code += f" {op} "
-    code = compile_tree(code, right, **kwargs)
+    op = compile_tree("", op, **kwargs)
+    if m := re.match(r"#OP:(.+)#", op):
+        code += f"{left} {m.group(1)} {right}"
+    else:
+        code += op
+        code += "("
+        code = compile_tree(code, left, **kwargs)
+        code += ", "
+        code = compile_tree(code, right, **kwargs)
+        code += ")"
     return code
 
 def compile_lambda_expression(code, params, body, **kwargs):
@@ -222,6 +302,20 @@ def compile_method_access(code, obj, method, args, **kwargs):
         if i < len(args.children) - 1:
             code += ", "
     code += ")"
+    return code
+
+def compile_index_expression(code, obj, index, **kwargs):
+    indent = "  " * kwargs["indent"]
+    code += "(function()\n"
+    code += indent + "  local _obj = "
+    code = compile_tree(code, obj, **kwargs)
+    code += "\n"
+    code += indent + "  local _index = "
+    code = compile_tree(code, index, **kwargs)
+    code += "\n"
+    code += indent + "  return _obj[type(_index) == \"number\" and _index < 0 and #_obj + _index + 1 or _index]"
+    code += "\n"
+    code += indent + "end)()"
     return code
 
 def compile_method_statement(code, tree, **kwargs):
@@ -302,6 +396,7 @@ def compile_struct_declaration(code, *args, **kwargs):
 def compile_function_declaration(code, name, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
     kwargs["param_index"] = 0
+    function_env[name] = len(params.children)
     code += indent + f"local function {name}(...)\n"
     code += indent + "  local _args = {...}\n"
     kwargs["indent"] += 1
@@ -366,6 +461,10 @@ def compile_tree(code, tree, **kwargs):
             return compile_template_literal(code, tree.value, **kwargs)
         if tree.type == "NAME":
             return compile_name(code, tree.value, **kwargs)
+        if tree.type == "OPERATOR_ALONE":
+            return compile_operator_alone(code, tree.value, **kwargs)
+        if tree.type in ["UNARY", "BITWISE", "MUL", "ADD", "REL", "LOG", "EQ"]:
+            return compile_operator(code, tree.value, **kwargs)
         assert False, "Not implemented: '%s'" % tree.type
     if tree.data == "array":
         return compile_array(code, *tree.children, **kwargs)
@@ -393,6 +492,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_property_access(code, *tree.children, **kwargs)
     if tree.data == "method_access":
         return compile_method_access(code, *tree.children, **kwargs)
+    if tree.data == "index_expression":
+        return compile_index_expression(code, *tree.children, **kwargs)
     if tree.data == "method_statement":
         return compile_method_statement(code, *tree.children, **kwargs)
     if tree.data == "if_expression":

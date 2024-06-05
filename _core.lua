@@ -36,33 +36,54 @@ function show(obj)
     return str .. "}"
 end
 
-function array(...)
-    local values = {...}
-    return setmetatable({
-        map = function(fn)
-            local new = {}
-            for i, v in pairs(values) do
+function array(values)
+    local obj = values
+    obj.map = function(fn)
+        local new = {}
+        for i, v in pairs(values) do
+            if type(i) == "number" then
                 new[i] = fn({v})
             end
-            return array(unpack(new))
-        end,
-        reduce = function(default, fn)
-            local acc = default
-            for i, v in pairs(values) do
+        end
+        return array(new)
+    end
+    obj.reduce = function(default, fn)
+        local acc = default
+        for i, v in pairs(values) do
+            if type(i) == "number" then
                 acc = fn({acc, v})
             end
-            return acc
-        end,
-        find = function(needle)
-            for i, v in pairs(values) do
-                if v == needle then
-                    return i
-                end
+        end
+        return acc
+    end
+    obj.reverse = function()
+        local new = {}
+        for i, v in pairs(values) do
+            if type(i) == "number" then
+                new[#values - i + 1] = v
             end
-            return nil
-        end,
-        ...,
-    }, {
+        end
+        return array(new)
+    end
+    obj.filter = function(fn)
+        local new = {}
+        for i, v in pairs(values) do
+            if type(i) == "number" and fn({v}) then
+                table.insert(new, v)
+            end
+        end
+        return array(new)
+    end
+    obj.find = function(needle)
+        for i, v in pairs(values) do
+            if type(i) == "number" and v == needle then
+                return i
+            end
+        end
+        return nil
+    end
+    setmetatable(obj, {
+        __values = values,
         __type = "array",
         __tostring = function()
             return show(values)
@@ -77,14 +98,28 @@ function array(...)
                     new[i] = v
                 end
             end
-            for i, v in pairs(other) do
+            for i, v in pairs(getmetatable(other).__values) do
                 if type(i) == "number" then
                     new[#new + 1] = v
                 end
             end
-            return array(unpack(new))
+            return array(new)
         end
     })
+    return obj
+end
+
+function range(min, max, step)
+    if not max then
+        max = min
+        min = 1
+    end
+    step = step or 1
+    local values = {}
+    for i = min, max, step do
+        table.insert(values, i)
+    end
+    return array(values)
 end
 
 function unpack(tbl, index)
@@ -114,6 +149,73 @@ function println(...)
         table.insert(reprs, show(obj))
     end
     print(unpack(reprs))
+end
+
+function _idiv(a, b)
+    return math.floor(a / b)
+end
+
+function _band(a, b)
+    local result = 0
+    local bit = 1
+    while a > 0 and b > 0 do
+      if (a % 2 == 1) and (b % 2 == 1) then
+          result = result + bit
+      end
+         a = math.floor(a / 2)
+        b = math.floor(b / 2)
+        bit = bit * 2
+    end
+    return result
+end
+
+function _bor(a, b)
+    local result = 0
+    local bit = 1
+    while a ~= 0 or b ~= 0 do
+         if (a % 2 == 1) or (b % 2 == 1) then
+             result = result + bit
+         end
+         a = math.floor(a / 2)
+          b = math.floor(b / 2)
+         bit = bit * 2
+    end
+    return result
+end
+
+function _bxor(a, b)
+    local result = 0
+    local bit = 1
+    while a ~= 0 or b ~= 0 do
+        if (a % 2 ~= b % 2) then
+            result = result + bit
+        end
+        a = math.floor(a / 2)
+        b = math.floor(b / 2)
+        bit = bit * 2
+    end
+    return result
+end
+
+function _bnot(a)
+    local result = 0
+    local bit = 1
+    for i = 1, 32 do
+        if a % 2 == 0 then
+           result = result + bit
+        end
+        a = math.floor(a / 2)
+        bit = bit * 2
+    end
+    return result
+end
+
+function _shl(a, n)
+    return a * (2 ^ n)
+end
+
+function _shr(a, n)
+    return math.floor(a / (2 ^ n))
 end
 
 return {
