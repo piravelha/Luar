@@ -6,9 +6,12 @@ program: statement*
 block: "do" statement* return_statement "end"
 
 ?statement: variable_declaration
+          | inline_variable_declaration
           | function_declaration
+          | inline_function_declaration
           | struct_declaration
           | function_call
+          | empty
 
 return_statement: expression
 
@@ -16,11 +19,17 @@ function_call: atom argument_list
 
 argument_list: "(" (expression ("," expression)* ","?)? ")"
 
+inline_function_declaration: "inline" NAME no_pattern_parameter_list "=" expression
+
 function_declaration: "local" NAME parameter_list "=" expression
 
 struct_declaration: "struct" NAME parameter_list? "=" object
 
+no_pattern_parameter_list: "(" (NAME ("," NAME)* ","?)? ")"
+
 parameter_list: "(" (pattern ("," pattern)* ","?)? ")"
+
+inline_variable_declaration: "inline" NAME "=" expression
 
 variable_declaration: "local" pattern "=" expression
 
@@ -29,8 +38,9 @@ variable_declaration: "local" pattern "=" expression
 
 name_pattern: NAME
 
-array_pattern: "{" (pattern ("," pattern)* ","?)? "}"
+array_pattern: "{" ((NAME | rest_pattern) ("," (NAME | rest_pattern))* ","?)? "}"
 
+rest_pattern: "..." NAME
 
 ?expression: log_expression
            | lambda_expression
@@ -39,23 +49,23 @@ array_pattern: "{" (pattern ("," pattern)* ","?)? "}"
            | block
 
 
-method_access: atom ":" atom argument_list
+method_access: atom ":" NAME argument_list
 
-property_access: atom "." atom
+property_access: atom "." NAME
 
 lambda_expression: lambda_parameters "to" expression
 
 ?lambda_parameters: parameter_list | NAME
 
-?log_expression: eq_expression LOG eq_expression | eq_expression
+?log_expression: log_expression LOG eq_expression | eq_expression
 
-?eq_expression: rel_expression EQ rel_expression | rel_expression
+?eq_expression: eq_expression EQ rel_expression | rel_expression
 
-?rel_expression: add_expression REL add_expression | add_expression
+?rel_expression: rel_expression REL add_expression | add_expression
 
-?add_expression: mul_expression ADD mul_expression | mul_expression
+?add_expression: add_expression ADD mul_expression | mul_expression
 
-?mul_expression: unary_expression MUL unary_expression | unary_expression
+?mul_expression: mul_expression MUL unary_expression | unary_expression
 
 ?unary_expression: UNARY atom | atom
 
@@ -77,6 +87,8 @@ object: "{" (object_field ("," object_field)* ","?)? "}"
 object_field: NAME parameter_list? "=" expression
 
 array: "{" (expression ("," expression)* ","?)? "}"
+
+empty:
 
 UNARY: /not|-|\+|#/
 

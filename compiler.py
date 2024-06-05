@@ -1,5 +1,6 @@
 from lark import Token, Tree
 from parse import parser
+from inline import inline_tree
 import re
 
 def compile_number(code, value, **kwargs):
@@ -35,8 +36,30 @@ def compile_name_pattern(code, name, **kwargs):
     return code
 
 def compile_array_pattern(code, *values, **kwargs):
+    param_index = kwargs["param_index"]
+    indent = "  " * kwargs["indent"]
+    code += indent + "local "
     for i, val in enumerate(values):
-        code = compile_tree(code, val) + f"[{i + 1}]\n"
+        if isinstance(val, Tree):
+            code += val.children[0]
+        else:
+            code += val
+        if i < len(values) - 1:
+            code += ", "
+    code += "\n"
+    code += indent + f"if getmetatable(_args[{param_index}]) and getmetatable(_args[{param_index}]).__args then\n"
+    for i, val in enumerate(values):
+        if isinstance(val, Tree) and val.data == "rest_pattern":
+            code += indent + f"  {val.children[0]} = {{unpack(getmetatable(_args[{param_index}]).__args, {i + 1})}}\n"
+        else:
+            code += indent + f"  {val} = getmetatable(_args[{param_index}]).__args[{i + 1}]\n"
+    code += indent + "else\n"    
+    for i, val in enumerate(values):
+        if isinstance(val, Tree) and val.data == "rest_pattern":
+            code += indent + f"  {val.children[0]} = {{unpack(_args[{param_index}], {i + 1})}}\n"
+        else:
+            code += indent + f"  {val} = _args[{param_index}][{i + 1}]\n"
+    code += indent + "end\n"
     return code
 
 def compile_object_field(code, *args, **kwargs):
@@ -48,7 +71,7 @@ def compile_object_field(code, *args, **kwargs):
     else:
         name, params, value = args
         code += f"{name} = function(...)\n"
-        code += indent + "  _args = {...}\n"
+        code += indent + "  local _args = {...}\n"
         kwargs["param_index"] = 0
         kwargs["indent"] += 1
         for p in params.children:
@@ -99,11 +122,12 @@ def compile_binary_expression(code, left, op, right, **kwargs):
     return code
 
 def compile_lambda_expression(code, params, body, **kwargs):
+    indent = "  " * kwargs["indent"]
     code += "(function(_args)\n"
     code = compile_tree(code, params, **kwargs)
-    code += "  return "
+    code += indent + "  return "
     code = compile_tree(code, body, **kwargs)
-    code += "\nend)"
+    code += indent + "\nend)"
     return code
 
 def compile_property_access(code, obj, prop, **kwargs):
@@ -128,13 +152,18 @@ def compile_method_access(code, obj, method, args, **kwargs):
 
 def compile_variable_declaration(code, name, value, **kwargs):
     indent = "  " * kwargs["indent"]
-    code += indent + "local _args = {"
-    kwargs["indent"] += 1
-    code = compile_tree(code, value, **kwargs)
-    code += "}"
-    code += "\n"
-    kwargs["indent"] -= 1
-    code = compile_tree(code, name, **kwargs)
+    if name.data == "name_pattern":
+        code += indent + f"local {name.children[0]} = "
+        code = compile_tree(code, value, **kwargs)
+        code += "\n"
+    else:
+        code += indent + "local _args = {"
+        kwargs["indent"] += 1
+        code = compile_tree(code, value, **kwargs)
+        code += "}"
+        code += "\n"
+        kwargs["indent"] -= 1
+        code = compile_tree(code, name, **kwargs)
     return code
 
 def compile_struct_declaration(code, *args, **kwargs):
@@ -143,7 +172,7 @@ def compile_struct_declaration(code, *args, **kwargs):
         name, params, body = args
         kwargs["param_index"] = 0
         code += f"local function {name}(...)\n"
-        code += indent + "  _args = {...}\n"
+        code += indent + "  local _args = {...}\n"
         kwargs["indent"] += 1
         for p in params.children:
             kwargs["param_index"] += 1
@@ -166,8 +195,9 @@ def compile_function_declaration(code, name, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
     kwargs["param_index"] = 0
     code += indent + f"local function {name}(...)\n"
-    code += indent + "  _args = {...}\n"
-    for p in params:
+    code += indent + "  local _args = {...}\n"
+    kwargs["indent"] += 1
+    for p in params.children:
         kwargs["param_index"] += 1
         code = compile_tree(code, p, **kwargs)
         code += "\n"
@@ -263,13 +293,16 @@ def compile_tree(code, tree, **kwargs):
         return compile_block(code, *tree.children, **kwargs)
     if tree.data == "program":
         return compile_program(code, *tree.children, **kwargs)
+    if tree.data == "empty":
+        return code
     assert False, "Not implemented: '%s'" % tree.data
 
 
 def compile_source_code(source_code):
     tree = parser.parse(source_code)
+    inlined_tree = inline_tree(tree)
     code = "require \"lib\"\n\n"
-    code = compile_tree(code, tree, indent=0)
+    code = compile_tree(code, inlined_tree, indent=0)
     return code
 
 

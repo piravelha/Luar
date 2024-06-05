@@ -1,8 +1,18 @@
 
-struct Person(name, age) = {
-    set_name(n) = Person(n, age)
-}
+struct Box(value) = {}
 
-println(Person("Ian", 5).set_name("Miguel"))
---> Person(Miguel, 5)
+local test({values}) = do
+    local {a, b, ...rest} = values
+    println(a + b, rest)
+end
 
+local myBox = Box({1, 2, 3, 4, 5, 6})
+test(myBox)
+--> 3   {3, 4, 5, 6}
+
+inline add(x, y) = do
+    local z = x + y
+    z
+end
+
+println(add(1, 2))
