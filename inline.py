@@ -78,6 +78,13 @@ def inline_method_access(tree, **kwargs):
     args = inline_tree(args, **kwargs)
     return Tree("method_access", [obj, method, args])
 
+def inline_if_expression(tree, **kwargs):
+    cond, then, else_ = tree.children
+    cond = inline_tree(cond, **kwargs)
+    then = inline_tree(then, **kwargs)
+    else_ = inline_tree(else_, **kwargs)
+    return Tree("if_expression", [cond, then, else_])
+
 def inline_variable_declaration(tree, **kwargs):
     pat, expr = tree.children
     expr = inline_tree(expr, **kwargs)
@@ -91,7 +98,7 @@ def inline_inline_variable_declaration(tree, **kwargs):
 def inline_struct_declaration(tree, **kwargs):
     *name, body = tree.children
     body = inline_tree(body, **kwargs)
-    return Tree("struct_declaration", [name, body])
+    return Tree("struct_declaration", [*name, body])
 
 def inline_function_declaration(tree, **kwargs):
     name, params, body = tree.children

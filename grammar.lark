@@ -46,16 +46,18 @@ rest_pattern: "..." NAME
            | lambda_expression
            | property_access
            | method_access
+           | if_expression
            | block
 
+if_expression: "if" expression "then" expression "else" expression
 
-method_access: atom ":" NAME argument_list
+method_access: atom "." NAME argument_list
 
 property_access: atom "." NAME
 
 lambda_expression: lambda_parameters "to" expression
 
-?lambda_parameters: parameter_list | NAME
+?lambda_parameters: parameter_list | array_pattern | NAME
 
 ?log_expression: log_expression LOG eq_expression | eq_expression
 
@@ -75,6 +77,8 @@ lambda_expression: lambda_parameters "to" expression
      | array
      | NUMBER
      | STRING
+     | BOOLEAN
+     | NIL
      | TEMPLATE_LITERAL
      | NAME
 
@@ -105,6 +109,10 @@ EQ: /==|~=/
 NAME: /[a-zA-Z_][a-zA-Z_0-9]*/
 
 TEMPLATE_LITERAL: /`[^`]*`/
+
+NIL: /nil/
+
+BOOLEAN: /true|false/
 
 STRING: /"[^"]*"/
 

@@ -1,37 +1,32 @@
 require "lib"
 
-local [Token('NAME', 'Box'), Tree(Token('RULE', 'parameter_list'), [Tree(Token('RULE', 'name_pattern'), [Token('NAME', 'value')])])] = {
-}
-local function test(...)
+local function Person(...)
   local _args = {...}
-  local values
-  if getmetatable(_args[1]) and getmetatable(_args[1]).__args then
-    values = getmetatable(_args[1]).__args[1]
-  else
-    values = _args[1][1]
-  end
-
-  return (function()
-    local _args = {values}
-    local a, b, rest
-    if getmetatable(_args[1]) and getmetatable(_args[1]).__args then
-      a = getmetatable(_args[1]).__args[1]
-      b = getmetatable(_args[1]).__args[2]
-      rest = {unpack(getmetatable(_args[1]).__args, 3)}
-    else
-      a = _args[1][1]
-      b = _args[1][2]
-      rest = {unpack(_args[1], 3)}
-    end
-    return println(a + b, rest)
-  end)()
+  local name = _args[1]
+  local age = _args[2]
+  return setmetatable({
+  }, {
+    __name = "Person",
+    __args = {...},
+  })
 end
 
-local myBox = Box({1, 2, 3, 4, 5, 6})
+local function birthdays(...)
+  local _args = {...}
+  local people = _args[1]
+  return (people).map((function(_args)
+    local name, age
+    if getmetatable(_args[1]) and getmetatable(_args[1]).__args then
+      name = getmetatable(_args[1]).__args[1]
+      age = getmetatable(_args[1]).__args[2]
+    else
+      name = _args[1][1]
+      age = _args[1][2]
+    end
+    return Person(name, age + 1)  
+end))
+end
 
-test(myBox)
+local myArray = array(Person("Bob", 42), Person("John", 23), Person("Jane", 18))
 
-println((function()
-  local z = 1 + 2
-  return z
-end)())
+println(birthdays(myArray))

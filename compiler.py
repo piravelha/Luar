@@ -11,6 +11,14 @@ def compile_string(code, value, **kwargs):
     code += value
     return code
 
+def compile_boolean(code, value, **kwargs):
+    code += value
+    return code
+
+def compile_nil(code, value, **kwargs):
+    code += value
+    return code
+
 def compile_template_literal(code, value, **kwargs):
     matches = re.findall(r"\{.+?\}", value)
     formats = []
@@ -26,7 +34,12 @@ def compile_name(code, value, **kwargs):
     return code
 
 def compile_array(code, *values, **kwargs):
-    code += f"{{{", ".join(values)}}}"
+    code += f"array("
+    for i, val in enumerate(values):
+        code = compile_tree(code, val, **kwargs)
+        if i < len(values) - 1:
+            code += ", "
+    code += ")"
     return code
 
 def compile_name_pattern(code, name, **kwargs):
@@ -124,7 +137,17 @@ def compile_binary_expression(code, left, op, right, **kwargs):
 def compile_lambda_expression(code, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
     code += "(function(_args)\n"
-    code = compile_tree(code, params, **kwargs)
+    kwargs["indent"] += 1
+    if isinstance(params, Tree) and params.data == "parameter_list":
+        kwargs["param_index"] = 0
+        for p in params.children:
+            kwargs["param_index"] += 1
+            code = compile_tree(code, p, **kwargs)
+    elif isinstance(params, Tree):
+        kwargs["param_index"] = 1
+        code = compile_tree(code, params, **kwargs)
+    else:
+        code += indent + f"  local {params} = _args[1]\n"
     code += indent + "  return "
     code = compile_tree(code, body, **kwargs)
     code += indent + "\nend)"
@@ -140,14 +163,32 @@ def compile_property_access(code, obj, prop, **kwargs):
 def compile_method_access(code, obj, method, args, **kwargs):
     code += "("
     code = compile_tree(code, obj, **kwargs)
-    code += "):"
+    code += ")."
     code = compile_tree(code, method, **kwargs)
     code += "("
-    for i, a in enumerate(args):
+    for i, a in enumerate(args.children):
         code = compile_tree(code, a, **kwargs)
-        if i < len(args) - 1:
+        if i < len(args.children) - 1:
             code += ", "
     code += ")"
+    return code
+
+def compile_if_expression(code, cond, then, else_, **kwargs):
+    indent = "  " * kwargs["indent"]
+    code += "(function()\n"
+    code += indent + f"  if "
+    code = compile_tree(code, cond, **kwargs)
+    code += " then\n"
+    kwargs["indent"] += 1
+    code += indent + "    return "
+    code = compile_tree(code, then, **kwargs)
+    code += "\n"
+    code += indent + "  else\n"
+    code += indent + "    return "
+    code = compile_tree(code, else_, **kwargs)
+    code += "\n"
+    code += indent + "  end\n"
+    code += indent + "end)()"
     return code
 
 def compile_variable_declaration(code, name, value, **kwargs):
@@ -250,6 +291,10 @@ def compile_tree(code, tree, **kwargs):
             return compile_number(code, tree.value, **kwargs)
         if tree.type == "STRING":
             return compile_string(code, tree.value, **kwargs)
+        if tree.type == "BOOLEAN":
+            return compile_boolean(code, tree.value, **kwargs)
+        if tree.type == "NIL":
+            return compile_nil(code, tree.value, **kwargs)
         if tree.type == "TEMPLATE_LITERAL":
             return compile_template_literal(code, tree.value, **kwargs)
         if tree.type == "NAME":
@@ -279,6 +324,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_property_access(code, *tree.children, **kwargs)
     if tree.data == "method_access":
         return compile_method_access(code, *tree.children, **kwargs)
+    if tree.data == "if_expression":
+        return compile_if_expression(code, *tree.children, **kwargs)
     if tree.data == "variable_declaration":
         return compile_variable_declaration(code, *tree.children, **kwargs)
     if tree.data == "struct_declaration":

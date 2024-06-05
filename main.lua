@@ -1,18 +1,8 @@
 
-struct Box(value) = {}
+struct Person(name, age) = {}
 
-local test({values}) = do
-    local {a, b, ...rest} = values
-    println(a + b, rest)
-end
+local birthdays(people) = people.map({name, age} to Person(name, age + 1))
 
-local myBox = Box({1, 2, 3, 4, 5, 6})
-test(myBox)
---> 3   {3, 4, 5, 6}
+local myArray = {Person("Bob", 42), Person("John", 23), Person("Jane", 18)}
+println(birthdays(myArray))
 
-inline add(x, y) = do
-    local z = x + y
-    z
-end
-
-println(add(1, 2))

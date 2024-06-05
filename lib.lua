@@ -6,6 +6,10 @@ function show(obj)
 
     local mt = getmetatable(obj)
 
+    if mt and mt.__tostring then
+        return mt.__tostring(obj)
+    end
+
     if mt and mt.__args then
         local name = mt.__name
         local args = mt.__args
@@ -30,6 +34,24 @@ function show(obj)
     end
     str = str:sub(1, -3)
     return str .. "}"
+end
+
+function array(...)
+    local values = {...}
+    return setmetatable({
+        map = function(fn)
+            local new = {}
+            for i, v in pairs(values) do
+                new[i] = fn({v})
+            end
+            return array(unpack(new))
+        end,
+        ...,
+    }, {
+        __tostring = function()
+            return show(values)
+        end
+    })
 end
 
 function unpack(tbl, index)
