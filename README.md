@@ -113,7 +113,7 @@ Luar supports inlining of variables, and functions.
 
 Inline variables are names that the compiler replaces by its values at compile-time, whenever they are used.
 
-Inline functions are similar to inline variables, but they are parameterized by parameters, they currently do not support de-structuring on the arguments.
+Inline functions are similar to inline variables, but they are parameterized, they currently do not support de-structuring on the arguments.
 
 ```lua
 inline add(x, y) = x + y
