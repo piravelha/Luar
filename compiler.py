@@ -510,6 +510,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_return_statement(code, *tree.children, **kwargs)
     if tree.data == "block":
         return compile_block(code, *tree.children, **kwargs)
+    if tree.data == "inline_block":
+        return compile_block(code, *tree.children, **kwargs)
     if tree.data == "program":
         return compile_program(code, *tree.children, **kwargs)
     if tree.data == "empty":

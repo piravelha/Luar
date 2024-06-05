@@ -1,4 +1,12 @@
 
-local result = range(100000000, 1, -1).reduce(1, (+))
+local maximum(first, second) = do
+    if first > second then
+        print(`{first} is bigger than {second}.`)
+        first
+    else do
+        print(`{second} is bigger than {first}`)
+        second
+    end
+end
 
-print(result)
+maximum(7, 4)

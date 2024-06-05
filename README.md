@@ -75,6 +75,48 @@ You can also use them with blocks:
 end
 ```
 
+### If ~~statements~~ expressions
+
+In luar, you can perform basic conditional flow as follows:
+
+```lua
+local a = 3
+local b = 5
+local c = if a > b then a else b
+```
+
+They are more just like ternary expressions, but because blocks are also expressions, you can use them almost just like you would use if statements in lua:
+
+```lua
+local maximum(first, second) = do
+    if first > second then
+        print(`{first} is bigger than {second}.`)
+        first
+    else do
+        print(`{second} is bigger than {first}`)
+        second
+    end
+end
+
+maximum(2, 3)
+```
+
+For convenience, you can omit the 'do' block at the 'then' statement, otherwise, it would look like this:
+
+```lua
+local maximum(first, second) = do
+    if first > second then do
+        print(`{first} is bigger than {second}.`)
+        first
+    end else do
+        print(`{second} is bigger than {first}`)
+        second
+    end
+end
+
+maximum(2, 3)
+```
+
 ### Structs
 
 Structs are a way to create a special data-type, they allow you to create something similar to

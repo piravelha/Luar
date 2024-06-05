@@ -209,6 +209,8 @@ def inline_tree(tree, **kwargs):
         return inline_return_statement(tree, **kwargs)
     if tree.data == "block":
         return inline_block(tree, **kwargs)
+    if tree.data == "inline_block":
+        return inline_block(tree, **kwargs)
     if tree.data == "include_statement":
         return inline_include_statement(tree, **kwargs)
     if tree.data == "program":
