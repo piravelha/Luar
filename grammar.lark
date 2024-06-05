@@ -1,7 +1,7 @@
 
 ?start: program
 
-program: statement*
+program: include_statement* statement*
 
 block: "do" statement* return_statement "end"
 
@@ -11,9 +11,14 @@ block: "do" statement* return_statement "end"
           | inline_function_declaration
           | struct_declaration
           | function_call
+          | method_statement
           | empty
 
+include_statement: "include" STRING
+
 return_statement: expression
+
+method_statement: method_access
 
 function_call: atom argument_list
 
@@ -48,6 +53,7 @@ rest_pattern: "..." NAME
            | method_access
            | if_expression
            | block
+
 
 if_expression: "if" expression "then" expression "else" expression
 

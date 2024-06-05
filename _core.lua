@@ -82,3 +82,9 @@ function println(...)
     end
     print(unpack(reprs))
 end
+
+return {
+    show = show,
+    array = array,
+    println = println,
+}

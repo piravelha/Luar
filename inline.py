@@ -144,6 +144,14 @@ def inline_block(tree, **kwargs):
     ret = inline_tree(ret, **kwargs)
     return Tree("block", [*new_stmts, ret])
 
+def inline_include_statement(tree, **kwargs):
+    path = tree.children[0][1:-1]
+    # TODO: change .lua to .luar
+    with open(path + ".lua", "r") as f:
+        code = f.read()
+    tree = parser.parse(code)
+    return tree
+
 def inline_program(tree, **kwargs):
     stmts = tree.children
     new_stmts = []
@@ -194,6 +202,8 @@ def inline_tree(tree, **kwargs):
         return inline_return_statement(tree, **kwargs)
     if tree.data == "block":
         return inline_block(tree, **kwargs)
+    if tree.data == "include_statement":
+        return inline_include_statement(tree, **kwargs)
     if tree.data == "program":
         return inline_program(tree, **kwargs)
     return tree

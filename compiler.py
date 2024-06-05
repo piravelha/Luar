@@ -173,6 +173,13 @@ def compile_method_access(code, obj, method, args, **kwargs):
     code += ")"
     return code
 
+def compile_method_statement(code, tree, **kwargs):
+    indent = "  " * kwargs["indent"]
+    code += indent
+    code = compile_tree(code, tree, **kwargs)
+    code += "\n"
+    return code
+
 def compile_if_expression(code, cond, then, else_, **kwargs):
     indent = "  " * kwargs["indent"]
     code += "(function()\n"
@@ -324,6 +331,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_property_access(code, *tree.children, **kwargs)
     if tree.data == "method_access":
         return compile_method_access(code, *tree.children, **kwargs)
+    if tree.data == "method_statement":
+        return compile_method_statement(code, *tree.children, **kwargs)
     if tree.data == "if_expression":
         return compile_if_expression(code, *tree.children, **kwargs)
     if tree.data == "variable_declaration":
@@ -348,7 +357,8 @@ def compile_tree(code, tree, **kwargs):
 def compile_source_code(source_code):
     tree = parser.parse(source_code)
     inlined_tree = inline_tree(tree)
-    code = "require \"lib\"\n\n"
+    code = "local _core = require \"_core\"\n"
+    code += "local print = _core.println\n\n"
     code = compile_tree(code, inlined_tree, indent=0)
     return code
 
