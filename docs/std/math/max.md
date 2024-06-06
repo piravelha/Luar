@@ -41,8 +41,8 @@ struct Box(value) = {
 }
 
 print(Math.max(Box(10), Box(15)))
---[[>> Output: Box(15) <<]]
+--> Output: Box(15)
 
 print(Math.max(Box(3), Box(2)))
---[[>> Output: Box(3) <<]]
+--> Output: Box(3)
 ```
