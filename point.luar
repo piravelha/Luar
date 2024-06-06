@@ -1,0 +1,26 @@
+include "math"
+
+struct Point(x, y) = {
+    distance({x2, y2}) = Math.sqrt((x - x2) ^ 2 + (y - y2) ^ 2),
+    -- ToString
+    operator tostring() = `({x}, {y})`,
+    -- Arithmetic
+    operator +({x2, y2}) = Point(x + x2, y + y2),
+    operator -({x2, y2}) = Point(x - x2, y - y2),
+    operator *({x2, y2}) = Point(x * x2, y * y2),
+    operator /({x2, y2}) = Point(x / x2, y / y2),
+    operator //({x2, y2}) = Point(x // x2, y // y2),
+    operator %({x2, y2}) = Point(x % x2, y % y2),
+    operator ^({x2, y2}) = Point(x ^ x2, y ^ y2),
+    operator ..({x2, y2}) = x * x2 + y * y2,
+    -- Bitwise
+    operator &({x2, y2}) = Point(x & x2, y & y2),
+    operator |({x2, y2}) = Point(x | x2, y | y2),
+    operator ~({x2, y2}) = Point(x ~ x2, y ~ y2),
+    operator <<({x2, y2}) = Point(x << x2, y << y2),
+    operator >>({x2, y2}) = Point(x >> x2, y >> y2),
+    -- Unary
+    operator unary_~() = Point(~x, ~y),
+    operator unary_-() = Point(-x, -y),
+    -- Comparison
+}

@@ -2,6 +2,67 @@
 struct Math = {
     max(a, b) = if a > b then a else b,
     min(a, b) = if a < b then a else b,
-    is_palindrome(number) = string.reverse(tostring(number)) == tostring(number),
+    is_palindrome(number) = do
+        local str = tostring(number)
+        return string.reverse(str) == str
+    end,
+    e = 2.71828182845904523536,
+    pi = 3.14159265358979323846,
+    sqrt(x) = x ^ 0.5,
+    exp(x) = Math.e ^ x,
+    log(x) = math.log(x),
+    log10(x) = math.log10(x),
+    sin(x) = math.sin(x),
+    cos(x) = math.cos(x),
+    tan(x) = math.tan(x),
+    asin(x) = math.asin(x),
+    acos(x) = math.acos(x),
+    atan(x) = math.atan(x),
+    sinh(x) = math.sinh(x),
+    cosh(x) = math.cosh(x),
+    tanh(x) = math.tanh(x),
+    ceil(x) = math.ceil(x),
+    floor(x) = math.floor(x),
+    round(x) = math.floor(x + 0.5),
+    abs(x) = math.abs(x),
+    mod(x, y) = x % y,
+    pow(x, y) = x ^ y,
+    clamp(x, min, max) = Math.max(min, Math.min(max, x)),
+    factorial(n) = if n == 0
+        then 1
+        else n * Math.factorial(n - 1),
+    gcd(a, b) = if b == 0
+        then a
+        else Math.gcd(b, a % b),
+    lcm(a, b) = a * b / Math.gcd(a, b),
+    binomial(n, k) = do
+        local product_range(a, b, acc = 1) = if a <= b
+            then product_range(a + 1, b, acc * a)
+            else acc
+        return if k > n then 0
+        else if k == 0 or k == n then 1
+        else do
+            local new_k = Math.min(k, n - k)
+            return product_range(n - k + 1, n) // product_range(1, k)
+        end
+    end,
+    dot(a, b, acc = 0) = do
+        assert(#a == #b, "Math.dot(): vectors must have the same length")
+        return if #a == 0
+            then acc
+            else Math.dot(a[2:], b[2:], acc + a[1] * b[1])
+    end,
+    cross(a, b) = do
+        assert(#a == 3 and #b == 3, "Math.cross(): vectors must have length 3")
+        return {
+            a[2] * b[3] - a[3] * b[2],
+            a[3] * b[1] - a[1] * b[3],
+            a[1] * b[2] - a[2] * b[1]
+        }
+    end,
+    distance(a, b) = Math.sqrt(Math.dot(
+        a.zipwith((-), b),
+        a.zipwith((-), b)
+    )),
 }
 

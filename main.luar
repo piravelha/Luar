@@ -1,9 +1,6 @@
 include "math"
+include "point"
 
-local solve = range(99, 999)
-    .map(x to range(99, x).map(y to x * y))
-    .flatten()
-    .filter(Math.is_palindrome)
-    .reduce(0, Math.max)
+print(Point(1, 2) .. Point(2, 3))
 
-print(solve)
+print(Math.sqrt(4))

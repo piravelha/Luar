@@ -52,6 +52,25 @@ function array(values)
         old[i] = v
     end
     local obj = values
+    obj.slice = function(start, stop, step)
+        local new = {}
+        for i = start, stop, step do
+            new[#new + 1] = values[i]
+        end
+        return array(new)
+    end
+    obj.zipwith = function(fn, other)
+        if not getmetatable(other) or getmetatable(other).__type ~= "array" then
+            error("attempt to perform elemwise operation on an array and a non-array value ") 
+        end
+        local new = {}
+        for i, v in pairs(values) do
+            if type(i) == "number" then
+                new[i] = fn(v, getmetatable(other).__values[i])
+            end
+        end
+        return array(new)
+    end
     obj.map = function(fn)
         local new = {}
         for i, v in pairs(old) do
@@ -262,7 +281,129 @@ function _eq(a, b)
         return a == b
     end
 
-    return getmetatable(a).__eq(a, b)
+    local mt = getmetatable(a)
+    if mt and mt.__eq then
+        return mt.__eq(a, b)
+    end
+
+    if mt and mt.__name and  mt.__args then
+        local bmt = getmetatable(b)
+        if not bmt or bmt.__name ~= mt.__name or #bmt.__args ~= #mt.__args then
+            return false
+        end
+        for i, arg in pairs(mt.__args) do
+            if not _eq(arg, bmt.__args[i]) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return false
+end
+
+function _lt(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a < b
+    end
+
+    local mt = getmetatable(a)
+    if mt and mt.__lt then
+        return mt.__lt(a, b)
+    end
+
+    if mt and mt.__name and  mt.__args then
+        local bmt = getmetatable(b)
+        if not bmt or bmt.__name ~= mt.__name or #bmt.__args ~= #mt.__args then
+            return false
+        end
+        for i, arg in pairs(mt.__args) do
+            if not _lt(arg, bmt.__args[i]) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return false
+end
+
+function _lte(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a <= b
+    end
+
+    local mt = getmetatable(a)
+    if mt and mt.__le then
+        return mt.__le(a, b)
+    end
+
+    if mt and mt.__name and  mt.__args then
+        local bmt = getmetatable(b)
+        if not bmt or bmt.__name ~= mt.__name or #bmt.__args ~= #mt.__args then
+            return false
+        end
+        for i, arg in pairs(mt.__args) do
+            if not _le(arg, bmt.__args[i]) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return false
+end
+
+function _gt(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a > b
+    end
+
+    local mt = getmetatable(a)
+    if mt and mt.__gt then
+        return mt.__gt(a, b)
+    end
+
+    if mt and mt.__name and  mt.__args then
+        local bmt = getmetatable(b)
+        if not bmt or bmt.__name ~= mt.__name or #bmt.__args ~= #mt.__args then
+            return false
+        end
+        for i, arg in pairs(mt.__args) do
+            if not _gt(arg, bmt.__args[i]) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return false
+end
+
+function _gte(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a >= b
+    end
+
+    local mt = getmetatable(a)
+    if mt and mt.__ge then
+        return mt.__ge(a, b)
+    end
+
+    if mt and mt.__name and  mt.__args then
+        local bmt = getmetatable(b)
+        if not bmt or bmt.__name ~= mt.__name or #bmt.__args ~= #mt.__args then
+            return false
+        end
+        for i, arg in pairs(mt.__args) do
+            if not _ge(arg, bmt.__args[i]) then
+                return false
+            end
+        end
+        return true
+    end
+
+    return false
 end
 
 return {

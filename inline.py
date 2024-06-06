@@ -151,11 +151,10 @@ def inline_block(tree, **kwargs):
 
 def inline_include_statement(tree, **kwargs):
     path = tree.children[0][1:-1]
-    # TODO: change .lua to .luar
     with open(path + ".luar", "r") as f:
         code = f.read()
     tree = parser.parse(code)
-    return tree
+    return inline_tree(tree, **kwargs)
 
 def inline_program(tree, **kwargs):
     stmts = tree.children
@@ -181,7 +180,7 @@ def inline_tree(tree, **kwargs):
         return inline_table(tree, **kwargs)
     if tree.data == "unary_expression":
         return inline_unary_expression(tree, **kwargs)
-    if tree.data in ["mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
+    if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "infix_expression":
         return inline_function_call(Tree("function_call", [tree.children[1], Tree("argument_list", [tree.children[0], tree.children[2]])]), **kwargs)
