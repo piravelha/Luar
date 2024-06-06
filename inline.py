@@ -183,6 +183,8 @@ def inline_tree(tree, **kwargs):
         return inline_unary_expression(tree, **kwargs)
     if tree.data in ["mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return inline_binary_expression(tree, **kwargs)
+    if tree.data == "infix_expression":
+        return inline_function_call(Tree("function_call", [tree.children[1], Tree("argument_list", [tree.children[0], tree.children[2]])]), **kwargs)
     if tree.data == "binary_expression":
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "lambda_expression":

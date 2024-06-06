@@ -54,7 +54,7 @@ array_pattern: "{" ((NAME | rest_pattern) ("," (NAME | rest_pattern))* ","?)? "}
 
 rest_pattern: "..." NAME
 
-?expression: log_expression
+?expression: infix_expression
            | lambda_expression
            | if_expression
            | block
@@ -69,6 +69,8 @@ property_access: (NAME | function_call) "." NAME
 lambda_expression: lambda_parameters "to" expression
 
 ?lambda_parameters: parameter_list | array_pattern | NAME
+
+?infix_expression: infix_expression "@" atom log_expression | log_expression
 
 ?log_expression: log_expression LOG eq_expression | eq_expression
 

@@ -505,6 +505,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_unary_expression(code, *tree.children, **kwargs)
     if tree.data in ["bitwise_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return compile_binary_expression(code, *tree.children, **kwargs)
+    if tree.data == "infix_expression":
+        return compile_function_call(code, tree.children[1], Tree("argument_list", [tree.children[0], tree.children[2]]), **kwargs)
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)
     if tree.data == "property_access":
