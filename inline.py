@@ -152,7 +152,7 @@ def inline_block(tree, **kwargs):
 def inline_include_statement(tree, **kwargs):
     path = tree.children[0][1:-1]
     # TODO: change .lua to .luar
-    with open(path + ".lua", "r") as f:
+    with open(path + ".luar", "r") as f:
         code = f.read()
     tree = parser.parse(code)
     return tree

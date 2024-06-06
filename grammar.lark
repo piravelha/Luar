@@ -5,7 +5,7 @@ program: include_statement* statement*
 
 block: "do" statement* return_statement "end"
 
-?inline_block: statement* return_statement | block
+?inline_block: statement* return_statement | block | expression
 
 ?statement: variable_declaration
           | inline_variable_declaration
@@ -19,7 +19,7 @@ block: "do" statement* return_statement "end"
 
 include_statement: "include" STRING
 
-return_statement: "return"? expression
+return_statement: "return" expression
 
 method_statement: method_access
 
@@ -124,7 +124,7 @@ UNARY: /not|-|\+|#|~/
 
 BITWISE: /&|\||~|<<|>>/
 
-MUL: /\*|\/|%/
+MUL: /\*|\/\/|\/|%/
 
 ADD: /\+|-|\.\./
 
@@ -138,7 +138,7 @@ OPERATOR: /\+|-|\*|\/|unary_-|%|\^|\/\/|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#
 
 OPERATOR_ALONE: /\((\+|-|\*|\/|%|\^|\/\/|&|\||~|<<|>>|==|!=|<=|>=|<|>|\.\.)\)/
 
-NAME: /(?!true|false|and|or|not|to|if|then|else|local|inline|struct|include|do|operator|return)[a-zA-Z_][a-zA-Z_0-9]*/
+NAME: /(?!(true|false|and|or|not|to|if|then|else|local|inline|struct|include|do|operator|return)\b)[a-zA-Z_][a-zA-Z_0-9]*/
 
 TEMPLATE_LITERAL: /`[^`]*`/
 

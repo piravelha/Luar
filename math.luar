@@ -1,0 +1,7 @@
+
+struct Math = {
+    max(a, b) = if a > b then a else b,
+    min(a, b) = if a < b then a else b,
+    is_palindrome(number) = string.reverse(tostring(number)) == tostring(number),
+}
+

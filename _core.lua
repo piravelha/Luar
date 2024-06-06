@@ -25,7 +25,11 @@ function show(obj, depth)
                 str = str .. ", "
             end
         end
-        return str .. ")"
+        str = str .. ")"
+        if #args == 0 then
+            str = str:sub(1, -3)
+        end
+        return str
     end
 
     local str = "{"
@@ -50,7 +54,7 @@ function array(values)
     local obj = values
     obj.map = function(fn)
         local new = {}
-        for i, v in pairs(values) do
+        for i, v in pairs(old) do
             if type(i) == "number" then
                 new[i] = fn(v)
             end
@@ -92,6 +96,17 @@ function array(values)
         end
         return nil
     end
+    obj.flatten = function()
+        local new = {}
+        for i, arr in pairs(old) do
+            for j, v in pairs(arr) do
+                if type(j) == "number" then
+                    new[#new + 1] = v
+                end
+            end
+        end
+        return array(new)
+    end
     setmetatable(obj, {
         __values = old,
         __type = "array",
@@ -114,7 +129,21 @@ function array(values)
                 end
             end
             return array(new)
-        end
+        end,
+        __eq = function(_, other)
+            if not getmetatable(other) or getmetatable(other).__type ~= "array" then
+                return false
+            end
+            if #values ~= #getmetatable(other).__values then
+                return false
+            end
+            for i, v in pairs(old) do
+                if v ~= getmetatable(other).__values[i] then
+                    return false
+                end
+            end
+            return true
+        end,
     })
     return obj
 end
@@ -226,6 +255,14 @@ end
 
 function _shr(a, n)
     return math.floor(a / (2 ^ n))
+end
+
+function _eq(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return a == b
+    end
+
+    return getmetatable(a).__eq(a, b)
 end
 
 return {

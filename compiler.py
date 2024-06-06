@@ -59,7 +59,7 @@ def compile_template_literal(code, value, **kwargs):
 def compile_operator(code, op, **kwargs):
     indent = "  " * kwargs["indent"]
     unary_ops = ["-", "~", "#"]
-    supported_ops = ["+", "-", "*", "/", "//", "%", "^", "==", "~=", "<", ">", "<=", ">=", "#"]
+    supported_ops = ["+", "-", "*", "/", "%", "^", "<", ">", "<=", ">=", "#"]
     if op == "!=":
         op = "~="
     if op in supported_ops:
@@ -104,7 +104,12 @@ def compile_operator(code, op, **kwargs):
         code += indent + "  end\n"
         code += indent + f"  return getmetatable(a).__{op_to_name[op]}(a, b)\n"
     else:
-        code += indent + f"  return a {op} b\n"
+        if op == "==":
+            code += indent + "    return _eq(a, b)\n"
+        elif op == "~=":
+            code += indent + "    return not _eq(a, b)\n"
+        else:
+            code += indent + f"  return a {op} b\n"
     code += indent + "end)"
     return code
 
@@ -357,6 +362,7 @@ def compile_variable_declaration(code, name, value, **kwargs):
     else:
         code += indent + "local _args = {"
         kwargs["indent"] += 1
+        kwargs["param_index"] = 1
         code = compile_tree(code, value, **kwargs)
         code += "}"
         code += "\n"
@@ -396,6 +402,10 @@ def compile_struct_declaration(code, *args, **kwargs):
     name, body = args
     code += f"local {name} = "
     code = compile_tree(code, body, **kwargs)
+    code = code[:-2].rstrip() + "\n"
+    code += indent + f"  __name = \"{name}\",\n"
+    code += indent + "  __args = {},\n"
+    code += indent + "})\n"
     return code
 
 def compile_function_declaration(code, name, params, body, **kwargs):
@@ -551,7 +561,7 @@ def compile_source_code(source_code):
     return code
 
 
-with open("main.lua") as f:
+with open("main.luar") as f:
     text = f.read()
 
 with open("out.lua", "w") as f:

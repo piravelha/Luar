@@ -1,11 +1,22 @@
-array = range(1, 100000000)
 
-def reduce(arr, acc, fn):
-    for x in arr:
-        acc = fn(acc, x)
-    return acc
+array = [[x * y for x in range(99, 999)] for y in range(99, 999)]
 
-def add(acc, x):
-    return acc + x
+def is_palindrome(number):
+    original_number = number
+    reversed_number = 0
 
-print(reduce(array, 0, add))
+    while number > 0:
+        digit = number % 10
+        reversed_number = reversed_number * 10 + digit
+        number = number // 10
+
+    return original_number == reversed_number
+
+flattened = []
+for xs in array:
+    for x in xs:
+        flattened.append(x)
+
+filtered = list(filter(is_palindrome, flattened))
+
+print(max(filtered))
