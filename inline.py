@@ -149,19 +149,51 @@ def inline_block(tree, **kwargs):
     ret = inline_tree(ret, **kwargs)
     return Tree("block", [*new_stmts, ret])
 
+from pathlib import Path
+
 def inline_include_statement(tree, **kwargs):
+    cur_path = kwargs["path"]
     path = tree.children[0][1:-1]
-    with open(path + ".luar", "r") as f:
+    path = path.replace(".", "/") + ".luar"
+    path = cur_path.parent / Path(path)
+    with open(path, "r") as f:
         code = f.read()
     tree = parser.parse(code)
-    return inline_tree(tree, **kwargs)
+    kwargs["path"] = path
+    return Tree("include", [path, inline_tree(tree, **kwargs)])
 
 def inline_program(tree, **kwargs):
     stmts = tree.children
     new_stmts = []
     for s in stmts:
-        new_stmts.append(inline_tree(s, **kwargs))
-    return Tree("program", new_stmts)
+        s = inline_tree(s, **kwargs)
+        new_stmts.append(s)
+    final_stmts = []
+    includes = []
+    for s in new_stmts:
+        if s.data == "include":
+            if not s.children[0] in includes:
+                all_new = True
+                temp = []
+                for s2 in s.children[1].children[1]:
+                    if s2.data == "include":
+                        if not s2.children[0] in includes:
+                            temp.append(s2)
+                            includes.append(s2.children[0])
+                        else:
+                            all_new = False
+                    else:
+                        temp.append(s2)
+                includes.extend(s.children[1].children[0])
+                includes.append(s.children[0])
+                if all_new:
+                    final_stmts.append(s)
+                else:
+                    final_stmts.extend(temp)
+        else:
+            final_stmts.append(s)
+
+    return Tree("program", [includes, final_stmts])
 
 def inline_tree(tree, **kwargs):
     if isinstance(tree, Token):
@@ -183,7 +215,7 @@ def inline_tree(tree, **kwargs):
     if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "infix_expression":
-        return inline_function_call(Tree("function_call", [tree.children[1], Tree("argument_list", [tree.children[0], tree.children[2]])]), **kwargs)
+        return inline_method_access(Tree("method_access", [tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]])]), **kwargs)
     if tree.data == "binary_expression":
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "lambda_expression":

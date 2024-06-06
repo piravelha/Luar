@@ -2,7 +2,8 @@ include "math"
 
 struct Point(x, y) = {
     distance({x2, y2}) = Math.sqrt((x - x2) ^ 2 + (y - y2) ^ 2),
-    -- ToString
+    dot({x2, y2}) = x * x2 + y * y2,
+    -- Tostring
     operator tostring() = `({x}, {y})`,
     -- Arithmetic
     operator +({x2, y2}) = Point(x + x2, y + y2),
@@ -22,5 +23,4 @@ struct Point(x, y) = {
     -- Unary
     operator unary_~() = Point(~x, ~y),
     operator unary_-() = Point(-x, -y),
-    -- Comparison
 }

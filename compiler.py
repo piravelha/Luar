@@ -519,7 +519,13 @@ def compile_block(code, *stmts, **kwargs):
     code += indent + "end)()"
     return code
 
-def compile_program(code, *stmts, **kwargs):
+def compile_include(code, path, tree, **kwargs):
+    code += f"-- START INCLUDE: {path}\n"
+    code = compile_tree(code, tree, **kwargs)
+    code += f"-- END INCLUDE: {path}\n"
+    return code
+
+def compile_program(code, _, stmts, **kwargs):
     for s in stmts:
         code = compile_tree(code, s, **kwargs)
         code += "\n"
@@ -565,7 +571,7 @@ def compile_tree(code, tree, **kwargs):
     if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return compile_binary_expression(code, *tree.children, **kwargs)
     if tree.data == "infix_expression":
-        return compile_function_call(code, tree.children[1], Tree("argument_list", [tree.children[0], tree.children[2]]), **kwargs)
+        return compile_method_access(code, tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]]), **kwargs)
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)
     if tree.data == "property_access":
@@ -594,6 +600,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_block(code, *tree.children, **kwargs)
     if tree.data == "inline_block":
         return compile_block(code, *tree.children, **kwargs)
+    if tree.data == "include":
+        return compile_include(code, *tree.children, **kwargs)
     if tree.data == "program":
         return compile_program(code, *tree.children, **kwargs)
     if tree.data == "empty":
@@ -601,9 +609,9 @@ def compile_tree(code, tree, **kwargs):
     assert False, "Not implemented: '%s'" % tree.data
 
 
-def compile_source_code(source_code):
+def compile_source_code(source_code, path):
     tree = parser.parse(source_code)
-    inlined_tree = inline_tree(tree)
+    inlined_tree = inline_tree(tree, path=path)
     code = "local _core = require \"_core\"\n"
     code += "local print = _core.println\n\n"
     code = compile_tree(code, inlined_tree, indent=0)
@@ -613,5 +621,7 @@ def compile_source_code(source_code):
 with open("main.luar") as f:
     text = f.read()
 
+from pathlib import Path
+
 with open("out.lua", "w") as f:
-    f.write(compile_source_code(text))
+    f.write(compile_source_code(text, Path("main.luar")))

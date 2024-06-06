@@ -1,6 +1,7 @@
-include "math"
-include "point"
+include "std.math"
+include "std.point"
 
-print(Point(1, 2) .. Point(2, 3))
+print(Point(1, 2) @dot Point(2, 3))
 
 print(Math.sqrt(4))
+
