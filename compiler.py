@@ -111,7 +111,8 @@ def compile_operator(code, op, **kwargs):
 def compile_operator_alone(code, op, **kwargs):
     op = op[1:-1]
     indent = "  " * kwargs["indent"]
-    code += "(function(_args)\n"
+    code += "(function(...)\n"
+    code += indent + "  local _args = {...}\n"
     code += indent + "  local a, b = _args[1], _args[2]\n"
     code += indent + "  return "
     kwargs["indent"] += 1
@@ -231,7 +232,7 @@ def compile_table_field(code, key, value, **kwargs):
     code = compile_tree(code, value, **kwargs)
     return code
 
-def compile_table(code, fields, **kwargs):
+def compile_table(code, *fields, **kwargs):
     code += "{"
     for i, f in enumerate(fields):
         code = compile_tree(code, f, **kwargs)
@@ -255,7 +256,9 @@ def compile_unary_expression(code, op, value, **kwargs):
 def compile_binary_expression(code, left, op, right, **kwargs):
     op = compile_tree("", op, **kwargs)
     if m := re.match(r"#OP:(.+)#", op):
-        code += f"{left} {m.group(1)} {right}"
+        code = compile_tree(code, left, **kwargs)
+        code += f" {m.group(1)} "
+        code = compile_tree(code, right, **kwargs)
     else:
         code += op
         code += "("
@@ -267,7 +270,8 @@ def compile_binary_expression(code, left, op, right, **kwargs):
 
 def compile_lambda_expression(code, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
-    code += "(function(_args)\n"
+    code += "(function(...)\n"
+    code += indent + "  local _args = {...}\n"
     kwargs["indent"] += 1
     if isinstance(params, Tree) and params.data == "parameter_list":
         kwargs["param_index"] = 0
@@ -281,7 +285,8 @@ def compile_lambda_expression(code, params, body, **kwargs):
         code += indent + f"  local {params} = _args[1]\n"
     code += indent + "  return "
     code = compile_tree(code, body, **kwargs)
-    code += indent + "\nend)"
+    code += "\n"
+    code += indent + "end)"
     return code
 
 def compile_property_access(code, obj, prop, **kwargs):
@@ -425,6 +430,14 @@ def compile_function_call(code, func, args, **kwargs):
     code += ")"
     return code
 
+def compile_optional_parameter(code, name, value, **kwargs):
+    indent = "  " * kwargs["indent"]
+    code += indent + f"_args[{kwargs["param_index"]}] = _args[{kwargs["param_index"]}] or "
+    code = compile_tree(code, value, **kwargs)
+    code += "\n"
+    code = compile_tree(code, name, **kwargs)
+    return code
+
 def compile_return_statement(code, expr, **kwargs):
     indent = "  " * kwargs["indent"]
     code += indent + "return "
@@ -437,7 +450,13 @@ def compile_block(code, *stmts, **kwargs):
     code += "(function()\n"
     kwargs["indent"] += 1
     for s in stmts:
-        code = compile_tree(code, s, **kwargs)
+        line = compile_tree("", s, **kwargs)
+        if not line.endswith("\n"):
+            code += indent + "  "
+            code += line
+            code += "\n"
+        else:
+            code += line
     code += indent + "end)()"
     return code
 
@@ -506,6 +525,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_function_declaration(code, *tree.children, **kwargs)
     if tree.data == "function_call":
         return compile_function_call(code, *tree.children, **kwargs)
+    if tree.data == "optional_parameter":
+        return compile_optional_parameter(code, *tree.children, **kwargs)
     if tree.data == "return_statement":
         return compile_return_statement(code, *tree.children, **kwargs)
     if tree.data == "block":

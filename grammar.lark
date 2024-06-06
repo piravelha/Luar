@@ -25,7 +25,7 @@ method_statement: method_access
 
 function_call: atom argument_list
 
-argument_list: "(" (expression ("," expression)* ","?)? ")"
+argument_list: "(" (expression ("," expression)* ","?)? ")" | array
 
 inline_function_declaration: "inline" NAME no_pattern_parameter_list "=" expression
 
@@ -35,7 +35,9 @@ struct_declaration: "struct" NAME parameter_list? "=" object
 
 no_pattern_parameter_list: "(" (NAME ("," NAME)* ","?)? ")"
 
-parameter_list: "(" (pattern ("," pattern)* ","?)? ")"
+parameter_list: "(" (optional_parameter ("," optional_parameter)* ","?)? ")"
+
+?optional_parameter: pattern ("=" expression)? | pattern
 
 inline_variable_declaration: "inline" NAME "=" expression
 
@@ -58,11 +60,11 @@ rest_pattern: "..." NAME
            | block
 
 
-if_expression: "if" expression "then" inline_block "else" block
+if_expression: "if" expression "then" inline_block "else" inline_block
 
-method_access: atom "." NAME argument_list
+method_access: (NAME | function_call) "." NAME argument_list
 
-property_access: atom "." NAME
+property_access: (NAME | function_call) "." NAME
 
 lambda_expression: lambda_parameters "to" expression
 
@@ -82,12 +84,9 @@ lambda_expression: lambda_parameters "to" expression
 
 ?unary_expression: UNARY atom | atom
 
-?atom: function_call
-     | table
+?atom: table
      | object
      | array
-     | property_access
-     | method_access
      | index_expression
      | NUMBER
      | STRING
@@ -96,6 +95,9 @@ lambda_expression: lambda_parameters "to" expression
      | TEMPLATE_LITERAL
      | NAME
      | OPERATOR_ALONE
+     | function_call
+     | property_access
+     | method_access
      | "(" expression ")"
 
 index_expression: expression "[" expression "]"

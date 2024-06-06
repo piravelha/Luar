@@ -1,5 +1,10 @@
 
-function show(obj)
+function show(obj, depth)
+    depth = depth or 0
+    if depth > 10 then
+        return "{...}"
+    end
+
     if type(obj) ~= "table" then
         return tostring(obj)
     end
@@ -15,7 +20,7 @@ function show(obj)
         local args = mt.__args
         local str = name .. "("
         for i, a in pairs(args) do
-            str = str .. show(a)
+            str = str .. show(a, depth + 1)
             if i < #args then
                 str = str .. ", "
             end
@@ -26,9 +31,9 @@ function show(obj)
     local str = "{"
     for k, v in pairs(obj) do
         if type(k) == "number" then
-            str = str .. show(v)
+            str = str .. show(v, depth + 1)
         else
-            str = str .. "[" .. show(k) .. "] = " .. show(v)
+            str = str .. "[" .. show(k, depth + 1) .. "] = " .. show(v, depth + 1)
         end
         str = str .. ", "
     end
@@ -37,12 +42,17 @@ function show(obj)
 end
 
 function array(values)
+    values = values or {}
+    local old = {}
+    for i, v in pairs(values) do
+        old[i] = v
+    end
     local obj = values
     obj.map = function(fn)
         local new = {}
         for i, v in pairs(values) do
             if type(i) == "number" then
-                new[i] = fn({v})
+                new[i] = fn(v)
             end
         end
         return array(new)
@@ -51,7 +61,7 @@ function array(values)
         local acc = default
         for i, v in pairs(values) do
             if type(i) == "number" then
-                acc = fn({acc, v})
+                acc = fn(acc, v)
             end
         end
         return acc
@@ -68,7 +78,7 @@ function array(values)
     obj.filter = function(fn)
         local new = {}
         for i, v in pairs(values) do
-            if type(i) == "number" and fn({v}) then
+            if type(i) == "number" and fn(v) then
                 table.insert(new, v)
             end
         end
@@ -83,10 +93,10 @@ function array(values)
         return nil
     end
     setmetatable(obj, {
-        __values = values,
+        __values = old,
         __type = "array",
         __tostring = function()
-            return show(values)
+            return show(old)
         end,
         __add = function(_, other)
             if not getmetatable(other) or getmetatable(other).__type ~= "array" then
@@ -145,7 +155,7 @@ end
 
 function println(...)
     local reprs = {}
-    for _, obj in pairs({...}) do
+    for i, obj in pairs({...}) do
         table.insert(reprs, show(obj))
     end
     print(unpack(reprs))
