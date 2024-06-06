@@ -54,11 +54,23 @@ array_pattern: "{" ((NAME | rest_pattern) ("," (NAME | rest_pattern))* ","?)? "}
 
 rest_pattern: "..." NAME
 
+?type: type_name
+     | array_type
+     | function_type
+     | pointer_type
+
+pointer_type: type "*"
+
+function_type: "(" (type ("," type)* ","?)? ")" "->" type
+
+array_type: type_name "[" SIZE_T? "]"
+
+type_name: NAME
+
 ?expression: infix_expression
            | lambda_expression
            | if_expression
            | block
-
 
 if_expression: "if" expression "then" inline_block "else" inline_block
 
@@ -149,6 +161,8 @@ BOOLEAN: /true|false/
 STRING: /"[^"]*"/
 
 NUMBER: /\d+(\.\d+)?/
+
+SIZE_T: /\d+/
 
 %ignore /\s+/
 %ignore /--.*/
