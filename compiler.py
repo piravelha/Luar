@@ -55,7 +55,8 @@ def compile_template_literal(code, value, **kwargs):
         value = value.replace(m, "%s")
         formats.append(m[1:-1])
     value = f"\"{value[1:-1]}\""
-    code += f"({value}):format({", ".join(formats)})"
+    formats = ", ".join(formats)
+    code += f"({value}):format({formats})"
     return code
 
 def compile_operator(code, op, **kwargs):
@@ -491,7 +492,8 @@ def compile_function_call(code, func, args, **kwargs):
 
 def compile_optional_parameter(code, name, value, **kwargs):
     indent = "  " * kwargs["indent"]
-    code += indent + f"_args[{kwargs["param_index"]}] = _args[{kwargs["param_index"]}] or "
+    param_index = kwargs.get("param_index", 1)
+    code += indent + f"_args[{param_index}] = _args[{param_index}] or "
     code = compile_tree(code, value, **kwargs)
     code += "\n"
     code = compile_tree(code, name, **kwargs)

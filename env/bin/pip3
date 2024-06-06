@@ -1,4 +1,4 @@
-#!/home/ian/Documents/Luar/env/bin/python3
+#!/home/ian/Documents/Luar@Main/Luar/env/bin/pypy3
 # -*- coding: utf-8 -*-
 import re
 import sys
