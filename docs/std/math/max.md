@@ -20,8 +20,6 @@
 - `a`: The first value.
 > `ord`
 
----
-
 - `b`: The second value.
 > `ord`
 
