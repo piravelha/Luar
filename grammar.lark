@@ -60,14 +60,13 @@ rest_pattern: "..." NAME
            | if_expression
            | block
 
-
 if_expression: "if" expression "then" inline_block "else" inline_block
 
 infix_expression: atom "@" NAME expression
 
-method_access: (NAME | function_call) "." NAME argument_list
+method_access: (atom) "." NAME argument_list
 
-property_access: (NAME | function_call) "." NAME
+property_access: (atom) "." NAME
 
 lambda_expression: lambda_parameters "to" expression
 
@@ -87,11 +86,13 @@ lambda_expression: lambda_parameters "to" expression
 
 ?bitwise_expression: bitwise_expression BITWISE unary_expression | unary_expression
 
-?unary_expression: UNARY atom | atom
+?unary_expression: UNARY atom_paren | atom_paren
 
-?atom: table
+?atom_paren: atom
+           | "(" expression ")"
+
+?atom: array
      | object
-     | array
      | index_expression
      | NUMBER
      | STRING
@@ -103,9 +104,10 @@ lambda_expression: lambda_parameters "to" expression
      | function_call
      | property_access
      | method_access
-     | "(" expression ")"
 
 index_expression: expression "[" expression (":" (expression | empty))? (":" expression)? "]"
+
+array: "{" (expression ("," expression)* ","?)? "}"
 
 table: "{" (table_field ("," table_field)* ","?)? "}"
 
@@ -116,8 +118,6 @@ object: "{" ((object_field | operator_field) ("," (object_field | operator_field
 operator_field: "operator" OPERATOR parameter_list "=" expression
 
 object_field: NAME parameter_list? "=" expression
-
-array: "{" (expression ("," expression)* ","?)? "}"
 
 empty:
 

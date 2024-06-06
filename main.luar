@@ -1,7 +1,4 @@
-include "std.math"
-include "std.point"
 
-print(Point(1, 2) @dot Point(2, 3))
 
-print(Math.sqrt(4))
+print({1, 2, 3}.map(x to x + 1))
 

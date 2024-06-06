@@ -33,13 +33,18 @@ function show(obj, depth)
     end
 
     local str = "{"
+    local empty = true
     for k, v in pairs(obj) do
+        empty = false
         if type(k) == "number" then
             str = str .. show(v, depth + 1)
         else
             str = str .. "[" .. show(k, depth + 1) .. "] = " .. show(v, depth + 1)
         end
         str = str .. ", "
+    end
+    if empty then
+        return "{}"
     end
     str = str:sub(1, -3)
     return str .. "}"
