@@ -16,7 +16,7 @@ Arrays are defined as follows:
 {1, 2, 3, 4, 5}
 ```
 
-Objects:
+and Objects:
 
 ```lua
 {
@@ -25,15 +25,12 @@ Objects:
 }
 ```
 
-And tables (more like dictionaries):
+By default, all empty `{}` are Objects, if you want to insert an empty array instead, you can do this by calling the array struct:
 
 ```lua
-{
-    [1] = 2,
-    ["my_key"] = 42,
-    [true] = false,
-    [{1, 2, 3}] = {3, 2, 1},
-}
+array()
+-- or
+array{}
 ```
 
 ### Concise functions
