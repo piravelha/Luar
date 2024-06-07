@@ -38,9 +38,9 @@ struct Box(value) = {
     operator >({other}) = value > other,
 }
 
-print(Math.max(Box(10), Box(15)))
+print(max(Box(10), Box(15)))
 --> Output: Box(15)
 
-print(Math.max(Box(3), Box(2)))
+print(max(Box(3), Box(2)))
 --> Output: Box(3)
 ```

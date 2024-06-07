@@ -512,6 +512,7 @@ def compile_block(code, *stmts, **kwargs):
     code += "(function()\n"
     kwargs["indent"] += 1
     for s in stmts:
+        if s.data == "empty": continue
         line = compile_tree("", s, **kwargs)
         if not line.endswith("\n"):
             code += indent + "  "
@@ -575,6 +576,8 @@ def compile_tree(code, tree, **kwargs):
         return compile_binary_expression(code, *tree.children, **kwargs)
     if tree.data == "infix_expression":
         return compile_method_access(code, tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]]), **kwargs)
+    if tree.data == "prefix_expression":
+        return compile_method_access(tree.children[1], tree.children[0], Tree("argument_list", []))
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)
     if tree.data == "property_access":

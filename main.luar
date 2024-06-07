@@ -1,8 +1,11 @@
-include "std.io"
 
-local str = "Hello, World!\n"
-    .replace("World", "Luar")
+struct Person(name, age) = {
+    print_info() = do
+        print(`NAME: {name}`)
+        print(`AGE: {age}`)
+    end
+}
 
-IO.write(str)
---> Hello, Luar!
+local mark = Person("Mark", 42)
+print_info: mark
 

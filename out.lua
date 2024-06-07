@@ -1,33 +1,27 @@
 local _core = require "_core"
 local print = _core.println
 
--- START INCLUDE: std/io.luar
-local IO;
-IO = setmetatable({
-  read = function(...)
-    local _args = {...};
-    local file = _args[1];
+local function Person(...)
+  local _args = {...};
+  local name = _args[1];
 
-    return (function()
-      (io).input(rawstr(file));
-      (io).read(rawstr(_string("*all")));
-    end)()
-  end,
-  write = function(...)
-    local _args = {...};
-    local contents = _args[1];
+  local age = _args[2];
 
-    return (function()
-      (io).write(rawstr(contents));
-    end)()
-  end,
-}, {
-  __name = "IO",
-  __args = {},
-});
+  return setmetatable({
+    print_info = function(...)
+      local _args = {...};
 
--- END INCLUDE: std/io.luar
+      return (function()
+        print(("NAME: %s"):format(name));
+        return print(("AGE: %s"):format(age));
+      end)()
+    end,
+  }, {
+    __name = "Person",
+    __args = {...},
+  })
+end
 
-local str = (_string("Hello, World!\n")).replace(_string("World"), _string("Luar"));
+local mark = Person(_string("Mark"), 42);
 
-(IO).write(str)
+(mark).print_info()

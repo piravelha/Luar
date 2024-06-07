@@ -13,13 +13,15 @@ block: "do" statement* return_statement? "end"
           | inline_function_declaration
           | struct_declaration
           | function_call
+          | prefix_expression
+          | infix_expression
           | method_statement
           | assignent_statement
           | empty
 
 include_statement: "include" STRING
 
-return_statement: "return" expression
+return_statement: "return"? expression
 
 method_statement: method_access
 
@@ -56,6 +58,7 @@ rest_pattern: "..." NAME
 
 ?expression: log_expression
            | infix_expression
+           | prefix_expression
            | lambda_expression
            | if_expression
            | block
@@ -63,6 +66,8 @@ rest_pattern: "..." NAME
 if_expression: "if" expression "then" inline_block "else" inline_block
 
 infix_expression: atom "@" NAME expression
+
+prefix_expression: NAME ":" atom
 
 method_access: (atom) "." NAME argument_list
 

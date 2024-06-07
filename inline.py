@@ -216,6 +216,8 @@ def inline_tree(tree, **kwargs):
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "infix_expression":
         return inline_method_access(Tree("method_access", [tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]])]), **kwargs)
+    if tree.data == "prefix_expression":
+        return inline_method_access(Tree("method_access", [tree.children[1], tree.children[0], Tree("argument_list", [])]))
     if tree.data == "binary_expression":
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "lambda_expression":
