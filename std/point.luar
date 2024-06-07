@@ -1,7 +1,7 @@
 include "math"
 
 struct Point(x, y) = {
-    distance({x2, y2}) = Math.sqrt((x - x2) ^ 2 + (y - y2) ^ 2),
+    distance({x2, y2}) = sqrt((x - x2) ^ 2 + (y - y2) ^ 2),
     dot({x2, y2}) = x * x2 + y * y2,
     -- Tostring
     operator tostring() = `({x}, {y})`,

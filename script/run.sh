@@ -1,2 +1,1 @@
-echo "[INFO] Compiling... (main.luar)"
-pypy3 compiler.py && echo "[INFO] Done (out.lua)" && luajit out.lua
+pypy3 compiler.py main.luar -o out.lua && luajit out.lua

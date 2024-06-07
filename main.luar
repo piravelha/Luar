@@ -1,4 +1,8 @@
+include "std.io"
 
+local str = "Hello, World!\n"
+    .replace("World", "Luar")
 
-print({1, 2, 3}.map(x to x + 1))
+IO.write(str)
+--> Hello, Luar!
 

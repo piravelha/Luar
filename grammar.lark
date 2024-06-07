@@ -3,9 +3,9 @@
 
 program: include_statement* statement*
 
-block: "do" statement* return_statement "end"
+block: "do" statement* return_statement? "end"
 
-?inline_block: statement* return_statement | block | expression
+?inline_block: statement* return_statement? | block | expression
 
 ?statement: variable_declaration
           | inline_variable_declaration
@@ -139,19 +139,19 @@ LOG: /and|or/
 
 EQ: /==|!=/
 
-OPERATOR: /\+|-|\*|\/\/|\/|unary_-|%|\^|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#|tostring/
+OPERATOR: /\+|-|\*|\/\/|\/|unary_-|%|\^|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#|tostring|index/
 
 OPERATOR_ALONE: /\((\+|-|\*|\/\/|\/|%|\^|&|\||~|<<|>>|==|!=|<=|>=|<|>|\.\.)\)/
 
 NAME: /(?!(true|false|and|or|not|to|if|then|else|local|inline|struct|include|do|operator|return)\b)[a-zA-Z_][a-zA-Z_0-9]*/
 
-TEMPLATE_LITERAL: /`[^`]*`/
+TEMPLATE_LITERAL: /`(?:[^`\\]|\\.)*`/
 
 NIL: /nil/
 
 BOOLEAN: /true|false/
 
-STRING: /"[^"]*"/
+STRING: /"(?:[^"\\]|\\.)*"/
 
 NUMBER: /\d+(\.\d+)?/
 

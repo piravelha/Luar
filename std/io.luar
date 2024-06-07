@@ -1,0 +1,10 @@
+
+struct IO = {
+    read(file) = do
+        io.input(rawstr(file))
+        io.read(rawstr("*all"))
+    end,
+    write(contents) = do
+        io.write(rawstr(contents))
+    end,
+}

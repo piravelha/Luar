@@ -30,6 +30,7 @@ op_to_name = {
     "unary_~": "bnot",
     "unary_#": "len",
     "tostring": "tostring",
+    "index": "index",
 }
 
 def compile_number(code, value, **kwargs):
@@ -37,7 +38,7 @@ def compile_number(code, value, **kwargs):
     return code
 
 def compile_string(code, value, **kwargs):
-    code += value
+    code += f"_string({value})"
     return code
 
 def compile_boolean(code, value, **kwargs):
@@ -73,19 +74,19 @@ def compile_operator(code, op, **kwargs):
         code += indent + "  if b then\n"
         if op == "~":
             code += indent + f"    if type(a) ~= \"table\" then\n"
-            code += indent + f"      return _bxor(a, b)\n"
+            code += indent + f"      return _bxor(a, b);\n"
             code += indent + "    end\n"
-            code += indent + f"    return getmetatable(a) and getmetatable(a).__bxor(a, b)\n"
+            code += indent + f"    return getmetatable(a) and getmetatable(a).__bxor(a, b);\n"
         else:
-            code += indent + f"    return {op}a\n"
+            code += indent + f"    return {op}a;\n"
         code += indent + "  end\n"
         if op == "~":
             code += indent + f"  if type(a) ~= \"table\" then\n"
-            code += indent + f"    return _bnot(a)\n"
+            code += indent + f"    return _bnot(a);\n"
             code += indent + "  end\n"
-            code += indent + f"  return getmetatable(a) and getmetatable(a).__bnot(a)\n"
+            code += indent + f"  return getmetatable(a) and getmetatable(a).__bnot(a);\n"
         else:
-            code += indent + f"  return {op}a\n"
+            code += indent + f"  return {op}a;\n"
         code += indent + "end)"
         return code
     new_ops = ["//", "|", "&", "<<", ">>"]
@@ -93,34 +94,34 @@ def compile_operator(code, op, **kwargs):
     if op in new_ops:
         code += indent + "  if type(a) ~= \"table\" and type(b) ~= \"table\" then\n"
         if op == "//":
-            code += indent + "    return _idiv(a, b)\n"
+            code += indent + "    return _idiv(a, b);\n"
         elif op == "|":
-            code += indent + "    return _bor(a, b)\n"
+            code += indent + "    return _bor(a, b);\n"
         elif op == "&":
-            code += indent + "    return _band(a, b)\n"
+            code += indent + "    return _band(a, b);\n"
         elif op == "<<":
-            code += indent + "    return _shl(a, b)\n"
+            code += indent + "    return _shl(a, b);\n"
         elif op == ">>":
-            code += indent + "    return _shr(a, b)\n"
+            code += indent + "    return _shr(a, b);\n"
         else:
-            code += indent + f"    return a {op} b\n"
+            code += indent + f"    return a {op} b;\n"
         code += indent + "  end\n"
-        code += indent + f"  return getmetatable(a).__{op_to_name[op]}(a, b)\n"
+        code += indent + f"  return getmetatable(a).__{op_to_name[op]}(a, b);\n"
     else:
         if op == "==":
-            code += indent + "    return _eq(a, b)\n"
+            code += indent + "    return _eq(a, b);\n"
         elif op == "~=":
-            code += indent + "    return not _eq(a, b)\n"
+            code += indent + "    return not _eq(a, b);\n"
         elif op == "<":
-            code += indent + "    return _lt(a, b)\n"
+            code += indent + "    return _lt(a, b);\n"
         elif op == ">":
-            code += indent + "    return _gt(a, b)\n"
+            code += indent + "    return _gt(a, b);\n"
         elif op == "<=":
-            code += indent + "    return _lte(a, b)\n"
+            code += indent + "    return _lte(a, b);\n"
         elif op == ">=":
-            code += indent + "    return _gte(a, b)\n"
+            code += indent + "    return _gte(a, b);\n"
         else:
-            code += indent + f"  return a {op} b\n"
+            code += indent + f"  return a {op} b;\n"
     code += indent + "end)"
     return code
 
@@ -128,15 +129,15 @@ def compile_operator_alone(code, op, **kwargs):
     op = op[1:-1]
     indent = "  " * kwargs["indent"]
     code += "(function(...)\n"
-    code += indent + "  local _args = {...}\n"
-    code += indent + "  local a, b = _args[1], _args[2]\n"
+    code += indent + "  local _args = {...};\n"
+    code += indent + "  local a, b = _args[1], _args[2];\n"
     code += indent + "  return "
     kwargs["indent"] += 1
     op = compile_operator("", op, **kwargs)
     if m := re.match(r"#OP:(.+)#", op):
-        code += f"a {m.group(1)} b\n"
+        code += f"a {m.group(1)} b;\n"
     else:
-        code += f"{op}(a, b)\n"
+        code += f"{op}(a, b);\n"
     code += indent + "end)"
     return code
 
@@ -156,7 +157,7 @@ def compile_array(code, *values, **kwargs):
 def compile_name_pattern(code, name, **kwargs):
     indent = "  " * kwargs["indent"]
     param_index = kwargs.get("param_index", 1)
-    code += indent + f"local {name} = _args[{param_index}]\n"
+    code += indent + f"local {name} = _args[{param_index}];\n"
     return code
 
 def compile_array_pattern(code, *values, **kwargs):
@@ -174,15 +175,15 @@ def compile_array_pattern(code, *values, **kwargs):
     code += indent + f"if getmetatable(_args[{param_index}]) and getmetatable(_args[{param_index}]).__args then\n"
     for i, val in enumerate(values):
         if isinstance(val, Tree) and val.data == "rest_pattern":
-            code += indent + f"  {val.children[0]} = {{unpack(getmetatable(_args[{param_index}]).__args, {i + 1})}}\n"
+            code += indent + f"  {val.children[0]} = {{unpack(getmetatable(_args[{param_index}]).__args, {i + 1})}};\n"
         else:
-            code += indent + f"  {val} = getmetatable(_args[{param_index}]).__args[{i + 1}]\n"
+            code += indent + f"  {val} = getmetatable(_args[{param_index}]).__args[{i + 1}];\n"
     code += indent + "else\n"    
     for i, val in enumerate(values):
         if isinstance(val, Tree) and val.data == "rest_pattern":
-            code += indent + f"  {val.children[0]} = {{unpack(_args[{param_index}], {i + 1})}}\n"
+            code += indent + f"  {val.children[0]} = {{unpack(_args[{param_index}], {i + 1})}};\n"
         else:
-            code += indent + f"  {val} = _args[{param_index}][{i + 1}]\n"
+            code += indent + f"  {val} = _args[{param_index}][{i + 1}];\n"
     code += indent + "end\n"
     return code
 
@@ -195,7 +196,7 @@ def compile_object_field(code, *args, **kwargs):
     else:
         name, params, value = args
         code += f"{name} = function(...)\n"
-        code += indent + "  local _args = {...}\n"
+        code += indent + "  local _args = {...};\n"
         kwargs["param_index"] = 0
         kwargs["indent"] += 1
         for p in params.children:
@@ -210,7 +211,7 @@ def compile_object_field(code, *args, **kwargs):
 def compile_operator_field(code, op_name, params, impl, **kwargs):
     indent = "  " * kwargs["indent"]
     code += f"__{op_to_name[op_name]} = function(_, _args)\n"
-    code += indent + "  local _args = {_args}\n"
+    code += indent + "  local _args = {_args};\n"
     kwargs["param_index"] = 0
     kwargs["indent"] += 1
     for p in params.children:
@@ -292,7 +293,7 @@ def compile_binary_expression(code, left, op, right, **kwargs):
 def compile_lambda_expression(code, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
     code += "(function(...)\n"
-    code += indent + "  local _args = {...}\n"
+    code += indent + "  local _args = {...};\n"
     kwargs["indent"] += 1
     if isinstance(params, Tree) and params.data == "parameter_list":
         kwargs["param_index"] = 0
@@ -303,7 +304,7 @@ def compile_lambda_expression(code, params, body, **kwargs):
         kwargs["param_index"] = 1
         code = compile_tree(code, params, **kwargs)
     else:
-        code += indent + f"  local {params} = _args[1]\n"
+        code += indent + f"  local {params} = _args[1];\n"
     code += indent + "  return "
     code = compile_tree(code, body, **kwargs)
     code += "\n"
@@ -407,14 +408,14 @@ def compile_variable_declaration(code, name, value, **kwargs):
     if name.data == "name_pattern":
         code += indent + f"local {name.children[0]} = "
         code = compile_tree(code, value, **kwargs)
-        code += "\n"
+        code += ";\n"
     else:
         code += indent + "local _args = {"
         kwargs["indent"] += 1
         kwargs["param_index"] = 1
         code = compile_tree(code, value, **kwargs)
         code += "}"
-        code += "\n"
+        code += ";\n"
         kwargs["indent"] -= 1
         code = compile_tree(code, name, **kwargs)
     return code
@@ -434,7 +435,7 @@ def compile_struct_declaration(code, *args, **kwargs):
         name, params, body = args
         kwargs["param_index"] = 0
         code += f"local function {name}(...)\n"
-        code += indent + "  local _args = {...}\n"
+        code += indent + "  local _args = {...};\n"
         kwargs["indent"] += 1
         for p in params.children:
             kwargs["param_index"] += 1
@@ -449,13 +450,13 @@ def compile_struct_declaration(code, *args, **kwargs):
         code += indent + "end\n"
         return code
     name, body = args
-    code += f"local {name}\n"
+    code += f"local {name};\n"
     code += f"{name} = "
     code = compile_tree(code, body, **kwargs)
     code = code[:-2].rstrip() + "\n"
     code += indent + f"  __name = \"{name}\",\n"
     code += indent + "  __args = {},\n"
-    code += indent + "})\n"
+    code += indent + "});\n"
     return code
 
 def compile_function_declaration(code, name, params, body, **kwargs):
@@ -495,7 +496,7 @@ def compile_optional_parameter(code, name, value, **kwargs):
     param_index = kwargs.get("param_index", 1)
     code += indent + f"_args[{param_index}] = _args[{param_index}] or "
     code = compile_tree(code, value, **kwargs)
-    code += "\n"
+    code += ";\n"
     code = compile_tree(code, name, **kwargs)
     return code
 
@@ -503,7 +504,7 @@ def compile_return_statement(code, expr, **kwargs):
     indent = "  " * kwargs["indent"]
     code += indent + "return "
     code = compile_tree(code, expr, **kwargs)
-    code += "\n"
+    code += ";\n"
     return code
 
 def compile_block(code, *stmts, **kwargs):
@@ -515,7 +516,7 @@ def compile_block(code, *stmts, **kwargs):
         if not line.endswith("\n"):
             code += indent + "  "
             code += line
-            code += "\n"
+            code += ";\n"
         else:
             code += line
     code += indent + "end)()"
@@ -619,11 +620,34 @@ def compile_source_code(source_code, path):
     code = compile_tree(code, inlined_tree, indent=0)
     return code
 
+def usage():
+    print("[USAGE]: python compiler.py <input_file> [-o <output_file>]")
 
-with open("main.luar") as f:
+import sys
+
+if len(sys.argv) <= 1:
+    usage()
+    sys.exit(1)
+
+input_file = sys.argv.pop(1)
+output_file = input_file.replace(".luar", ".lua")
+
+while len(sys.argv) > 1:
+    arg = sys.argv.pop(1)
+    if arg == "-o":
+        output_file = sys.argv.pop(1)
+    else:
+        print(f"Unknown argument: {arg}")
+        sys.exit(1)
+
+with open(input_file) as f:
     text = f.read()
 
 from pathlib import Path
 
-with open("out.lua", "w") as f:
+print(f"[INFO] Compiling... ({input_file})")
+
+with open(output_file, "w") as f:
     f.write(compile_source_code(text, Path("main.luar")))
+
+print(f"[INFO] Done ({output_file})")

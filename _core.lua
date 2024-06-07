@@ -50,6 +50,86 @@ function show(obj, depth)
     return str .. "}"
 end
 
+function _string(value)
+    return setmetatable({
+        reverse = function()
+            return _string(string.reverse(value))
+        end,
+        split = function(sep)
+            local parts = {}
+            for part in value:gmatch(getmetatable(_string("([^") .. sep .. _string("]+)")).__value) do
+                table.insert(parts, _string(part))
+            end
+            return array(parts)
+        end,
+        lower = function()
+            return _string(string.lower(value))
+        end,
+        upper = function()
+            return _string(string.upper(value))
+        end,
+        trim = function()
+            return _string(value:gsub("^%s*(.-)%s*$", "%1"))
+        end,
+        trimleft = function()
+            return _string(value:gsub("^%s*", ""))
+        end,
+        trimright = function()
+            return _string(value:gsub("%s*$", ""))
+        end,
+        startswith = function(prefix)
+            return value:sub(1, #prefix) == prefix
+        end,
+        endswith = function(suffix)
+            return value:sub(-#suffix) == suffix
+        end,
+        contains = function(sub)
+            return value:find(getmetatable(sub).__value) ~= nil
+        end,
+        replace = function(old, new)
+            return _string(value:gsub(getmetatable(old).__value, getmetatable(new).__value))
+        end,
+        find = function(sub)
+            return value:find(getmetatable(sub).__value)
+        end,
+        count = function(sub)
+            local count = 0
+            for _ in value:gmatch(getmetatable(sub).__value) do
+                count = count + 1
+            end
+            return count
+        end,
+    }, {
+        __index = function(self, key)
+            if type(key) == "number" then
+                return value:sub(key, key)
+            end
+            return rawget(self, key)
+        end,
+        __tostring = function()
+            return "\"" .. value .. "\""
+        end,
+        __eq = function(_, other)
+            return value == getmetatable(other).__value
+        end,
+        __concat = function(_, other)
+            return _string(value .. getmetatable(other).__value)
+        end,
+        __mul = function(_, other)
+            return _string(value:rep(other))
+        end,
+        __len = function()
+            return #value
+        end,
+        __type = "string",
+        __value = value,
+    })
+end
+
+function rawstr(obj)
+    return getmetatable(obj).__value
+end
+
 function array(values)
     values = values or {}
     local old = {}
@@ -63,6 +143,16 @@ function array(values)
             new[#new + 1] = values[i]
         end
         return array(new)
+    end
+    obj.join = function(sep)
+        local str = _string("")
+        for i, v in pairs(old) do
+            str = str .. v
+            if i < #old then
+                str = str .. sep
+            end
+        end
+        return str
     end
     obj.zipwith = function(fn, other)
         if not getmetatable(other) or getmetatable(other).__type ~= "array" then
@@ -209,7 +299,11 @@ end
 function println(...)
     local reprs = {}
     for i, obj in pairs({...}) do
-        table.insert(reprs, show(obj))
+        local repr = show(obj)
+        if getmetatable(obj) and getmetatable(obj).__type == "string" then
+            repr = repr:sub(2, -2)
+        end
+        reprs[#reprs + 1] = repr
     end
     print(unpack(reprs))
 end
