@@ -1,5 +1,7 @@
 # Luar
 
+![luar-demo](https://github.com/piravelha/Luar/assets/140568241/365ade5d-3f31-48d3-a3ee-c03634ea868e)
+
 Luar is a dialect of Lua, with many desirable modern language features.
 
 ## Important Info
