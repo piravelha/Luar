@@ -16,7 +16,7 @@ block: "do" statement* return_statement? "end"
           | prefix_expression
           | infix_expression
           | method_statement
-          | assignent_statement
+          | assignment_statement
           | empty
 
 include_statement: "include" STRING
@@ -43,7 +43,7 @@ parameter_list: "(" (optional_parameter ("," optional_parameter)* ","?)? ")"
 
 inline_variable_declaration: "inline" NAME "=" expression
 
-assignent_statement: NAME ASSIGN expression
+assignment_statement: NAME ASSIGN expression
 
 variable_declaration: "local" pattern "=" expression
 
@@ -54,7 +54,7 @@ name_pattern: NAME
 
 array_pattern: "{" ((NAME | rest_pattern) ("," (NAME | rest_pattern))* ","?)? "}"
 
-rest_pattern: "..." NAME
+rest_pattern: "@" NAME
 
 ?expression: log_expression
            | infix_expression

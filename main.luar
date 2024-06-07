@@ -1,11 +1,12 @@
 
-struct Person(name, age) = {
-    print_info() = do
-        print(`NAME: {name}`)
-        print(`AGE: {age}`)
-    end
-}
+inline add(arr) = do
+    local {x, y, @rest} = arr
+    print(`X: {x}`)
+    print(`Y: {y}`)
+    return rest
+end
 
-local mark = Person("Mark", 42)
-print_info: mark
+local rest = add({1, 2, 3, 4, 5})
+
+print(`REST: {rest}`)
 

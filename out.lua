@@ -1,27 +1,22 @@
 local _core = require "_core"
 local print = _core.println
 
-local function Person(...)
-  local _args = {...};
-  local name = _args[1];
 
-  local age = _args[2];
+local rest = (function()
+  local _args = {array{1, 2, 3, 4, 5}};
+  local x, y, rest
+  if getmetatable(_args[1]) and getmetatable(_args[1]).__args then
+    x = getmetatable(_args[1]).__args[1];
+    y = getmetatable(_args[1]).__args[2];
+    rest = array{unpack(getmetatable(_args[1]).__args, 3)};
+  else
+    x = _args[1][1];
+    y = _args[1][2];
+    rest = array{unpack(_args[1], 3)};
+  end
+  print(("X: %s"):format(x));
+  print(("Y: %s"):format(y));
+  return rest;
+end)();
 
-  return setmetatable({
-    print_info = function(...)
-      local _args = {...};
-
-      return (function()
-        print(("NAME: %s"):format(name));
-        return print(("AGE: %s"):format(age));
-      end)()
-    end,
-  }, {
-    __name = "Person",
-    __args = {...},
-  })
-end
-
-local mark = Person(_string("Mark"), 42);
-
-(mark).print_info()
+print(("REST: %s"):format(rest))

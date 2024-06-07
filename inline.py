@@ -15,8 +15,8 @@ def replace_id(tree, old, new):
 
 def inline_name(token, **kwargs):
     name = token.value
-    if name in env:
-        return inline_tree(env[name][1], **kwargs)
+    if str(name) in env:
+        return inline_tree(env[str(name)][1], **kwargs)
     return token
 
 def inline_array(tree, **kwargs):
@@ -67,6 +67,12 @@ def inline_binary_expression(tree, **kwargs):
     right = inline_tree(right, **kwargs)
     return Tree(tree.data, [left, op, right])
 
+def inline_assignment_statement(tree, **kwargs):
+    left, op, right = tree.children
+    left = inline_tree(left, **kwargs)
+    right = inline_tree(right, **kwargs)
+    return Tree(tree.data, [left, op, right])
+
 def inline_lambda_expression(tree, **kwargs):
     params, expr = tree.children
     expr = inline_tree(expr, **kwargs)
@@ -79,6 +85,7 @@ def inline_property_access(tree, **kwargs):
 
 def inline_method_access(tree, **kwargs):
     obj, method, args = tree.children
+    obj = inline_tree(obj, **kwargs)
     method = inline_tree(method, **kwargs)
     args = inline_tree(args, **kwargs)
     return Tree("method_access", [obj, method, args])
@@ -93,11 +100,18 @@ def inline_if_expression(tree, **kwargs):
 def inline_variable_declaration(tree, **kwargs):
     pat, expr = tree.children
     expr = inline_tree(expr, **kwargs)
+    if pat.data == "name_pattern":
+        if str(pat.children[0]) in env:
+            del env[str(pat.children[0])]
+    elif pat.data == "array_pattern":
+        for p in pat.children:
+            if str(p) in env:
+                del env[str(p)] 
     return Tree("variable_declaration", [pat, expr])
 
 def inline_inline_variable_declaration(tree, **kwargs):
     name, expr = tree.children
-    env[name] = ([], expr)
+    env[str(name)] = ([], expr)
     return Tree("empty", [])
 
 def inline_struct_declaration(tree, **kwargs):
@@ -108,11 +122,26 @@ def inline_struct_declaration(tree, **kwargs):
 def inline_function_declaration(tree, **kwargs):
     name, params, body = tree.children
     body = inline_tree(body, **kwargs)
+    if name.data == "name_pattern":
+        if str(name.children[0]) in env:
+            del env[str(name.children[0])]
+    elif name.data == "array_pattern":
+        for p in name.children:
+            if str(p.children[0]) in env:
+                del env[str(p.children[0])] 
+    for param in params:
+        if param.data == "name_pattern":
+            if str(param.children[0]) in env:
+                del env[str(param.children[0])]
+        elif param.data == "array_pattern":
+            for p in param.children:
+                if str(p.children[0]) in env:
+                    del env[str(p.children[0])] 
     return Tree("function_declaration", [name, params, body])
 
 def inline_inline_function_declaration(tree, **kwargs):
     name, params, expr = tree.children
-    env[name] = (params.children, expr)
+    env[str(name)] = (params.children, expr)
     return Tree("empty", [])
 
 def inline_argument_list(tree, **kwargs):
@@ -125,8 +154,8 @@ def inline_argument_list(tree, **kwargs):
 def inline_function_call(tree, **kwargs):
     func, args = tree.children
     if isinstance(func, Token) and func.type == "NAME":
-        if func.value in env:
-            params, expr = env[func.value]
+        if str(func.value) in env:
+            params, expr = env[str(func.value)]
             new_expr = expr
             if len(params) == len(args.children):
                 for i, p in enumerate(params):
@@ -197,6 +226,8 @@ def inline_program(tree, **kwargs):
 
 def inline_tree(tree, **kwargs):
     if isinstance(tree, Token):
+        if tree.type == "NAME":
+            return inline_name(tree, **kwargs)
         return tree
     if tree.data == "array":
         return inline_array(tree, **kwargs)
@@ -214,10 +245,12 @@ def inline_tree(tree, **kwargs):
         return inline_unary_expression(tree, **kwargs)
     if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return inline_binary_expression(tree, **kwargs)
+    if tree.data == "assignment_statement":
+        return inline_assignment_statement(tree, **kwargs)
     if tree.data == "infix_expression":
         return inline_method_access(Tree("method_access", [tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]])]), **kwargs)
     if tree.data == "prefix_expression":
-        return inline_method_access(Tree("method_access", [tree.children[1], tree.children[0], Tree("argument_list", [])]))
+        return inline_function_call(Tree("function_call", [tree.children[0], Tree("argument_list", [tree.children[1]])]))
     if tree.data == "binary_expression":
         return inline_binary_expression(tree, **kwargs)
     if tree.data == "lambda_expression":

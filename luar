@@ -1,3 +1,5 @@
+#!env/bin/pypy3
+
 from lark import Token, Tree
 from parse import parser
 from inline import inline_tree
@@ -175,13 +177,13 @@ def compile_array_pattern(code, *values, **kwargs):
     code += indent + f"if getmetatable(_args[{param_index}]) and getmetatable(_args[{param_index}]).__args then\n"
     for i, val in enumerate(values):
         if isinstance(val, Tree) and val.data == "rest_pattern":
-            code += indent + f"  {val.children[0]} = {{unpack(getmetatable(_args[{param_index}]).__args, {i + 1})}};\n"
+            code += indent + f"  {val.children[0]} = array{{unpack(getmetatable(_args[{param_index}]).__args, {i + 1})}};\n"
         else:
             code += indent + f"  {val} = getmetatable(_args[{param_index}]).__args[{i + 1}];\n"
     code += indent + "else\n"    
     for i, val in enumerate(values):
         if isinstance(val, Tree) and val.data == "rest_pattern":
-            code += indent + f"  {val.children[0]} = {{unpack(_args[{param_index}], {i + 1})}};\n"
+            code += indent + f"  {val.children[0]} = array{{unpack(_args[{param_index}], {i + 1})}};\n"
         else:
             code += indent + f"  {val} = _args[{param_index}][{i + 1}];\n"
     code += indent + "end\n"
@@ -288,6 +290,26 @@ def compile_binary_expression(code, left, op, right, **kwargs):
         code += ", "
         code = compile_tree(code, right, **kwargs)
         code += ")"
+    return code
+
+def compile_assignment_statement(code, name, op, value, **kwargs):
+    if op == "=":
+        code += f"{name} = "
+        code = compile_tree(code, value, **kwargs)
+        return code
+    op = compile_tree("", Token("MUL", op[:-1]), **kwargs)
+    if m := re.match(r"#OP:(.+)#", op):
+        code += f"{name} = {name}"
+        code += f" {m.group(1)} "
+        code = compile_tree(code, value, **kwargs)
+        code += ";\n"
+    else:
+        code += f"{name} = "
+        code += op
+        code += f"({name}"
+        code += ", "
+        code = compile_tree(code, value, **kwargs)
+        code += ");\n"
     return code
 
 def compile_lambda_expression(code, params, body, **kwargs):
@@ -418,15 +440,6 @@ def compile_variable_declaration(code, name, value, **kwargs):
         code += ";\n"
         kwargs["indent"] -= 1
         code = compile_tree(code, name, **kwargs)
-    return code
-
-def compile_assignment_statement(code, name, op, value, **kwargs):
-    if op == "=":
-        code += f"{name} = "
-        code = compile_tree(code, value, **kwargs)
-    else:
-        code += f"{name} = {name} {op} "
-        code = compile_tree(code, value, **kwargs)
     return code
 
 def compile_struct_declaration(code, *args, **kwargs):
@@ -574,10 +587,12 @@ def compile_tree(code, tree, **kwargs):
         return compile_unary_expression(code, *tree.children, **kwargs)
     if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
         return compile_binary_expression(code, *tree.children, **kwargs)
+    if tree.data == "assignment_statement":
+        return compile_assignment_statement(code, *tree.children, **kwargs)
     if tree.data == "infix_expression":
         return compile_method_access(code, tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]]), **kwargs)
     if tree.data == "prefix_expression":
-        return compile_method_access(tree.children[1], tree.children[0], Tree("argument_list", []))
+        return compile_function_call(tree.children[0], Tree("argument_list", [tree.children[1]]))
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)
     if tree.data == "property_access":
@@ -624,7 +639,7 @@ def compile_source_code(source_code, path):
     return code
 
 def usage():
-    print("[USAGE]: python compiler.py <input_file> [-o <output_file>]")
+    print("[USAGE]: luar <input_file> [-o <output_file>]")
 
 import sys
 
