@@ -1,4 +1,102 @@
 
+local op_lookup = {
+    ["+"] = "add",
+    ["-"] = "sub",
+    ["unary_-"] = "unm",
+    ["*"] = "mul",
+    ["/"] = "div",
+    ["//"] = "idiv",
+    ["%"] = "mod",
+    ["^"] = "pow",
+    ["=="] = "eq",
+    ["~="] = "neq",
+    ["<"] = "lt",
+    [">"] = "gt",
+    ["<="] = "lte",
+    [">="] = "gte",
+    ["|"] = "bor",
+    ["&"] = "band",
+    ["~"] = "bxor",
+    ["<<"] = "shl",
+    [">>"] = "shr",
+    [".."] = "concat",
+    ["unary_~"] = "bnot",
+    ["unary_#"] = "len",
+    ["tostring"] = "tostring",
+    ["index"] = "index",
+}
+
+local _supported_ops = {
+    number = {
+        "+", "-", "unary_-", "*", "/", "//", "%", "^", "==", "~=", "<", ">", "<=", ">=", "|", "&", "~", "<<", ">>", "unary_~", "tostring"
+    },
+}
+
+function asserttype(obj, func, level, ...)
+    types = {...}
+    match = false
+    for _, typ in pairs(types) do
+        if type(typ) == "table" and typ.kind == "constrain" then
+            local methods = typ.methods
+            if _supported_ops[type(obj)] then
+                local found = false
+                for _, method in pairs(methods) do
+                    for _, op in pairs(_supported_ops[type(obj)]) do
+                        if method == op then
+                            found = true
+                        end
+                    end
+                end
+                if found then
+                    match = true
+                end
+            end
+            if type(obj) == "table" then
+                local has_all = true
+                for _, method in pairs(methods) do
+                    if not getmetatable(obj)["__" .. op_lookup[method]] then
+                        has_all = false
+                    end
+                end
+                if has_all then
+                    match = true
+                end
+            end
+        elseif typeof(obj) == typ then
+            match = true
+        end
+    end
+    if not match then
+        local info = debug.getinfo(2, "n").name and debug.getinfo(2, "n").name .. "()" or "Unknown"
+        if #types == 1 then
+            error(string.format("(%s) %s: Could not match type '%s' with expected type '%s'.", func, info, typeof(obj), types[1]), level + 1)
+        end
+        error(string.format("(%s) %s: Could not match type '%s' with one of the expected types: %s", func, info, typeof(obj), table.concat(types, ", ")), level + 1)
+    end
+end
+
+function Constrain(...)
+    local methods = {}
+    for _, m in pairs({...}) do
+        table.insert(methods, type(m) == "string" and m or rawstr(m))
+    end
+    return setmetatable({
+        methods = methods,
+        kind = "constrain"
+    }, {
+        __tostring = function()
+            return string.format("Constrain {%s}", table.concat(methods, ", "))
+        end,
+    })
+end
+
+function typeof(obj)
+    if type(obj) ~= "table" then
+        return type(obj)
+    end
+    return getmetatable(obj).__type
+end
+
 function show(obj, depth)
     depth = depth or 0
     if depth > 10 then
@@ -51,11 +149,13 @@ function show(obj, depth)
 end
 
 function _string(value)
+    asserttype(value, "string", 2, "string")
     return setmetatable({
         reverse = function()
             return _string(string.reverse(value))
         end,
         split = function(sep)
+            asserttype(sep, "string.split()", 2, "string")
             local parts = {}
             for part in value:gmatch(getmetatable(_string("([^") .. sep .. _string("]+)")).__value) do
                 table.insert(parts, _string(part))
@@ -78,21 +178,28 @@ function _string(value)
             return _string(value:gsub("%s*$", ""))
         end,
         startswith = function(prefix)
+            asserttype(prefix, "string.startswith()", 2, "string")
             return value:sub(1, #prefix) == prefix
         end,
         endswith = function(suffix)
+            asserttype(suffix, "string.endswith()", 2, "string")
             return value:sub(-#suffix) == suffix
         end,
         contains = function(sub)
+            asserttype(sub, "string.contains()", 2, "string")
             return value:find(getmetatable(sub).__value) ~= nil
         end,
         replace = function(old, new)
+            asserttype(old, "string.replace()", 2, "string")
+            asserttype(new, "string.replace()", 2, "string")
             return _string(value:gsub(getmetatable(old).__value, getmetatable(new).__value))
         end,
         find = function(sub)
+            asserttype(sub, "string.find()", 2, "string")
             return value:find(getmetatable(sub).__value)
         end,
         count = function(sub)
+            asserttype(sub, "string.count()", 2, "string")
             local count = 0
             for _ in value:gmatch(getmetatable(sub).__value) do
                 count = count + 1
@@ -402,6 +509,8 @@ function _eq(a, b)
 end
 
 function _lt(a, b)
+    asserttype(a, "<", 2, Constrain("<"))
+    asserttype(b, ">", 2, Constrain(">"))
     if type(a) ~= "table" or type(b) ~= "table" then
         return a < b
     end
@@ -428,6 +537,8 @@ function _lt(a, b)
 end
 
 function _lte(a, b)
+    asserttype(a, "<=", 2, Constrain("<="))
+    asserttype(b, "<=", 2, Constrain("<="))
     if type(a) ~= "table" or type(b) ~= "table" then
         return a <= b
     end
@@ -454,6 +565,8 @@ function _lte(a, b)
 end
 
 function _gt(a, b)
+    asserttype(a, ">", 2, Constrain(">"))
+    asserttype(b, ">", 2, Constrain(">"))
     if type(a) ~= "table" or type(b) ~= "table" then
         return a > b
     end
@@ -480,6 +593,8 @@ function _gt(a, b)
 end
 
 function _gte(a, b)
+    asserttype(a, ">=", 2, Constrain(">="))
+    asserttype(b, ">=", 2, Constrain(">="))
     if type(a) ~= "table" or type(b) ~= "table" then
         return a >= b
     end

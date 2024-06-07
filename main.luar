@@ -1,12 +1,4 @@
 
-inline add(arr) = do
-    local {x, y, @rest} = arr
-    print(`X: {x}`)
-    print(`Y: {y}`)
-    return rest
-end
 
-local rest = add({1, 2, 3, 4, 5})
-
-print(`REST: {rest}`)
+print: {1, 2, 3} @map x to x + 1
 

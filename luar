@@ -133,11 +133,11 @@ def compile_operator_alone(code, op, **kwargs):
     code += "(function(...)\n"
     code += indent + "  local _args = {...};\n"
     code += indent + "  local a, b = _args[1], _args[2];\n"
-    code += indent + "  return "
     kwargs["indent"] += 1
     op = compile_operator("", op, **kwargs)
     if m := re.match(r"#OP:(.+)#", op):
-        code += f"a {m.group(1)} b;\n"
+        code += indent + f"  asserttype(a, \"{m.group(1)}\", 2, Constrain(\"{m.group(1)}\"))"
+        code += indent + f"  return a {m.group(1)} b;\n"
     else:
         code += f"{op}(a, b);\n"
     code += indent + "end)"
@@ -261,28 +261,42 @@ def compile_table(code, *fields, **kwargs):
     return code
 
 def compile_unary_expression(code, op, value, **kwargs):
+    indent = "  " * kwargs["indent"]
     if op == "not":
         code += "not "
     else:
         op = compile_operator("", op, **kwargs)
         if m := re.match(r"#OP:(.+)#", op):
-            code += f"{m.group(1)} "
+            code += f"(function()\n"
+            code += indent + "  local a = "
+            code = compile_tree(code, value, **kwargs)
+            code += ";\n"
+            code += indent + f"  asserttype(a, \"unary_{m.group(1)}\", 2, Constrain(\"unary_{m.group(1)}\"));\n"
+            code += indent + f"  return {m.group(1)} a;\n"
+            code += indent + "end)()"
         else:
             code += op + "("
             code = compile_tree(code, value, **kwargs)
             code += ")"
+            code = compile_tree(code, value, **kwargs)
             return code
-    code = compile_tree(code, value, **kwargs)
     return code
 
 def compile_binary_expression(code, left, op, right, **kwargs):
+    indent = "  " * kwargs["indent"]
     op = compile_tree("", op, **kwargs)
     if m := re.match(r"#OP:(.+)#", op):
-        code += "("
+        code += "(function()\n"
+        code += indent + "  local a = "
         code = compile_tree(code, left, **kwargs)
-        code += f" {m.group(1)} "
+        code += ";\n"
+        code += indent + "  local b = "
         code = compile_tree(code, right, **kwargs)
-        code += ")"
+        code += ";\n"
+        code += indent + f"  asserttype(a, \"{m.group(1)}\", 2, Constrain(\"{m.group(1)}\"));\n"
+        code += indent + f"  asserttype(b, \"{m.group(1)}\", 2, Constrain(\"{m.group(1)}\"));\n"
+        code += indent + f"  return a {m.group(1)} b;\n"
+        code += indent + "end)()"
     else:
         code += op
         code += "("
