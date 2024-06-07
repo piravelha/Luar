@@ -67,7 +67,7 @@ if_expression: "if" expression "then" inline_block "else" inline_block
 
 infix_expression: atom "@" NAME expression
 
-prefix_expression: NAME ":" atom
+prefix_expression: NAME ":" expression
 
 method_access: (atom) "." NAME argument_list
 
