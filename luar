@@ -1,4 +1,4 @@
-#!env/bin/pypy3
+#!env/bin/python3
 
 from lark import Token, Tree
 from parse import parser
@@ -130,9 +130,7 @@ def compile_operator(code, op, **kwargs):
 def compile_operator_alone(code, op, **kwargs):
     op = op[1:-1]
     indent = "  " * kwargs["indent"]
-    code += "(function(...)\n"
-    code += indent + "  local _args = {...};\n"
-    code += indent + "  local a, b = _args[1], _args[2];\n"
+    code += "(function(a, b)\n"
     code += indent + "  return "
     kwargs["indent"] += 1
     op = compile_operator("", op, **kwargs)
@@ -314,24 +312,40 @@ def compile_assignment_statement(code, name, op, value, **kwargs):
 
 def compile_lambda_expression(code, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
-    code += "(function(...)\n"
-    code += indent + "  local _args = {...};\n"
+    all_names = True
+    if not isinstance(params, Token):   
+      for p in params.children:
+        if p.data != "name_pattern":
+          all_names = False
+      params = ", ".join([str(p.children[0]) for p in params.children])
     kwargs["indent"] += 1
-    if isinstance(params, Tree) and params.data == "parameter_list":
-        kwargs["param_index"] = 0
-        for p in params.children:
-            kwargs["param_index"] += 1
-            code = compile_tree(code, p, **kwargs)
-    elif isinstance(params, Tree):
-        kwargs["param_index"] = 1
-        code = compile_tree(code, params, **kwargs)
+    if all_names:
+      code += "(function("
+      code += params
+      code += ")\n"
+      code += indent + "  return "
+      code = compile_tree(code, body, **kwargs)
+      code += ";\n"
+      code += indent + "end)"
+      return code
     else:
-        code += indent + f"  local {params} = _args[1];\n"
-    code += indent + "  return "
-    code = compile_tree(code, body, **kwargs)
-    code += "\n"
-    code += indent + "end)"
-    return code
+      code += "(function(...)\n"
+      code += indent + "  local _args = {...};\n"
+      if isinstance(params, Tree) and params.data == "parameter_list":
+          kwargs["param_index"] = 0
+          for p in params.children:
+              kwargs["param_index"] += 1
+              code = compile_tree(code, p, **kwargs)
+      elif isinstance(params, Tree):
+          kwargs["param_index"] = 1
+          code = compile_tree(code, params, **kwargs)
+      else:
+          code += indent + f"  local {params} = _args[1];\n"
+      code += indent + "  return "
+      code = compile_tree(code, body, **kwargs)
+      code += "\n"
+      code += indent + "end)"
+      return code
 
 def compile_property_access(code, obj, prop, **kwargs):
     code += "("
@@ -476,9 +490,21 @@ def compile_function_declaration(code, name, params, body, **kwargs):
     indent = "  " * kwargs["indent"]
     kwargs["param_index"] = 0
     function_env[name] = len(params.children)
+    all_names = True
+    kwargs["indent"] += 1
+    for p in params.children:
+      if p.data != "name_pattern":
+        all_names = False
+    if all_names:
+      params = ", ".join([str(p.children[0]) for p in params.children])
+      code += indent + f"local function {name}({params})\n"
+      code += indent + "  return "
+      code = compile_tree(code, body, **kwargs)
+      code += ";\n"
+      code += indent + "end\n"
+      return code
     code += indent + f"local function {name}(...)\n"
     code += indent + "  local _args = {...}\n"
-    kwargs["indent"] += 1
     for p in params.children:
         kwargs["param_index"] += 1
         code = compile_tree(code, p, **kwargs)
@@ -524,11 +550,30 @@ def compile_block(code, *stmts, **kwargs):
     indent = "  " * kwargs["indent"]
     code += "(function()\n"
     kwargs["indent"] += 1
-    for s in stmts:
+    for i, s in enumerate(stmts):
+        if s.data == "monadic_statement":
+            monadic = s.children[0]
+            if monadic.data == "variable_declaration":
+                pat, body = monadic.children
+                code += indent + "  return "
+                code = compile_tree(code, Tree("method_access", [body, Token("NAME", "flatmap"), Tree("parameter_list", [Tree("lambda_expression", [Tree("parameter_list", [pat]), Tree("block", stmts[i+1:])])])]), **kwargs)
+                code += ";\n"
+                code += indent + "end)()"
+                return code
+            elif monadic.data == "function_call":
+                func, args = monadic.children
+                code += indent + "  return "
+                code = compile_tree(code, Tree("method_access", [monadic, Token("NAME", "flatmap"), Tree("parameter_list", [Tree("lambda_expression", [Tree("parameter_list", []), Tree("block", stmts[i+1:])])])]), **kwargs)
+                code += ";\n"
+                code += indent + "end)()"
+                return code
+            elif monadic.data == "method_statement":
+                obj, method, args = monadic.children[0].children
+                code += indent + "  return "
+                code = compile_tree(code, Tree("method_access", [monadic, Token("NAME", "flatmap"), Tree("argument_list", [Tree("lambda_expression", [Tree("parameter_list", [])], Tree("block", stmts[i+1:]))])]), **kwargs)
         if s.data == "empty": continue
         line = compile_tree("", s, **kwargs)
         if not line.endswith("\n"):
-            code += indent + "  "
             code += line
             code += ";\n"
         else:
@@ -592,7 +637,7 @@ def compile_tree(code, tree, **kwargs):
     if tree.data == "infix_expression":
         return compile_method_access(code, tree.children[0], tree.children[1], Tree("argument_list", [tree.children[2]]), **kwargs)
     if tree.data == "prefix_expression":
-        return compile_function_call(tree.children[0], Tree("argument_list", [tree.children[1]]))
+        return compile_function_call(code, tree.children[0], Tree("argument_list", [tree.children[1]]))
     if tree.data == "lambda_expression":
         return compile_lambda_expression(code, *tree.children, **kwargs)
     if tree.data == "property_access":

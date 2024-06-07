@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/ian/Documents/Luar@Main/Luar/env"
+set -gx VIRTUAL_ENV "/data/data/com.termux/files/home/lua/luar-v2/main/env"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

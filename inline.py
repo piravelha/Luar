@@ -122,14 +122,7 @@ def inline_struct_declaration(tree, **kwargs):
 def inline_function_declaration(tree, **kwargs):
     name, params, body = tree.children
     body = inline_tree(body, **kwargs)
-    if name.data == "name_pattern":
-        if str(name.children[0]) in env:
-            del env[str(name.children[0])]
-    elif name.data == "array_pattern":
-        for p in name.children:
-            if str(p.children[0]) in env:
-                del env[str(p.children[0])] 
-    for param in params:
+    for param in params.children:
         if param.data == "name_pattern":
             if str(param.children[0]) in env:
                 del env[str(param.children[0])]

@@ -1,0 +1,15 @@
+
+struct None = {
+  map(fn) = None,
+  flatmap(fn) = None,
+  operator |(other) = other,
+  operator &(other) = None
+}
+
+struct Some(value) = {
+  map(fn) = Some(fn(value)),
+  flatmap(fn) = fn(value),
+  operator |(other) = Some(value),
+  operator &(other) = other,
+}
+

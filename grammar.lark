@@ -17,7 +17,13 @@ block: "do" statement* return_statement? "end"
           | infix_expression
           | method_statement
           | assignment_statement
-          | empty
+          | monadic_statement
+
+monadic_statement: monadics "?"
+
+?monadics: variable_declaration
+         | function_call
+         | method_statement
 
 include_statement: "include" STRING
 
@@ -63,7 +69,7 @@ rest_pattern: "@" NAME
            | if_expression
            | block
 
-if_expression: "if" expression "then" inline_block "else" inline_block
+if_expression: "if" expression "then" expression "else" expression
 
 infix_expression: atom "@" NAME expression
 

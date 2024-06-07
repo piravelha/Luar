@@ -1,4 +1,4 @@
-#!/home/ian/Documents/Luar@Main/Luar/env/bin/pypy3
+#!/data/data/com.termux/files/home/lua/luar-v2/main/env/bin/python3.11
 # -*- coding: utf-8 -*-
 import re
 import sys
