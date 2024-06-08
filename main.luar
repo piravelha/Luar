@@ -1,23 +1,4 @@
 
-include "std.maybe"
+include "std.point"
 
-local div(a, b) = if b == 0 
-    then None
-    else Some(a / b)
-
-local factorial(x) = do
-    local aux(x) = if x <= 1
-        then 1
-        else x * aux(x - 1)
-    if x < 0
-        then None
-        else Some(aux(x))
-end
-
-local main() = do
-    local a = div(8, 0)?
-    local b = factorial(a)?
-    return Some(b)
-end
-
-print: main()
+print: (Point(3, 4) :: Complex) + (1 + 2i)

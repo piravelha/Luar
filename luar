@@ -35,8 +35,14 @@ op_to_name = {
     "index": "index",
 }
 
-def compile_number(code, value, **kwargs):
+def compile_int(code, value, **kwargs):
     code += value
+    return code
+
+def compile_complex(code, complex, **kwargs):
+    real, op, img = complex.split()
+    if op == "+": op = ""
+    code += f"Complex({real}, {op}{img[:-1]})"
     return code
 
 def compile_string(code, value, **kwargs):
@@ -222,6 +228,15 @@ def compile_operator_field(code, op_name, params, impl, **kwargs):
     code += "\n" + indent + "end"
     return code
 
+def compile_cast_field(code, struct, impl, **kwargs):
+    indent = "  " * kwargs["indent"]
+    code += f"__cast_{struct} = function(_)\n"
+    kwargs["indent"] += 1
+    code += indent + "  return "
+    code = compile_tree(code, impl, **kwargs)
+    code += "\n" + indent + "end"
+    return code
+
 def compile_object(code, *fields, **kwargs):
     indent = "  " * kwargs["indent"]
     operators = []
@@ -232,7 +247,7 @@ def compile_object(code, *fields, **kwargs):
             code += indent + "  "
             code = compile_tree(code, f, **kwargs)
             code += ",\n"
-        elif f.data == "operator_field":
+        elif f.data in ["operator_field", "cast_field"]:
             operators.append(f)
     code += indent + "}, {\n"
     for f in operators:
@@ -256,6 +271,12 @@ def compile_table(code, *fields, **kwargs):
         if i < len(fields) < 1:
             code += ",\n"
     code += "}"
+    return code
+
+def compile_cast_expression(code, expr, struct, **kwargs):
+    code += "_cast("
+    code = compile_tree(code, expr, **kwargs)
+    code += f", \"{struct}\")"
     return code
 
 def compile_unary_expression(code, op, value, **kwargs):
@@ -516,7 +537,7 @@ def compile_function_declaration(code, name, params, body, **kwargs):
     return code
 
 def compile_function_call(code, func, args, **kwargs):
-    is_sensitive = isinstance(func, Token) and func.type in ["NUMBER", "STRING"] or isinstance(func, Tree) and func.data in ["array", "object", "table"]
+    is_sensitive = isinstance(func, Token) and func.type in ["INT", "STRING"] or isinstance(func, Tree) and func.data in ["array", "object", "table"]
     if is_sensitive:
         code += "("
     code = compile_tree(code, func, **kwargs)
@@ -593,10 +614,19 @@ def compile_program(code, _, stmts, **kwargs):
         code += "\n"
     return code
 
+def compile_comments(code, *args, **kwargs):
+    for arg in args:
+        code = compile_tree(code, arg, **kwargs)
+    return code
+
 def compile_tree(code, tree, **kwargs):
     if isinstance(tree, Token):
-        if tree.type == "NUMBER":
-            return compile_number(code, tree.value, **kwargs)
+        if tree.type == "COMMENT":
+            return ""
+        if tree.type == "INT":
+            return compile_int(code, tree.value, **kwargs)
+        if tree.type == "COMPLEX":
+            return compile_complex(code, tree.value, **kwargs)
         if tree.type == "STRING":
             return compile_string(code, tree.value, **kwargs)
         if tree.type == "BOOLEAN":
@@ -622,12 +652,16 @@ def compile_tree(code, tree, **kwargs):
         return compile_object_field(code, *tree.children, **kwargs)
     if tree.data == "operator_field":
         return compile_operator_field(code, *tree.children, **kwargs)
+    if tree.data == "cast_field":
+        return compile_cast_field(code, *tree.children, **kwargs)
     if tree.data == "object":
         return compile_object(code, *tree.children, **kwargs)
     if tree.data == "table_field":
         return compile_table_field(code, *tree.children, **kwargs)
     if tree.data == "table":
         return compile_table(code, *tree.children, **kwargs)
+    if tree.data == "cast_expression":
+        return compile_cast_expression(code, *tree.children, **kwargs)
     if tree.data == "unary_expression":
         return compile_unary_expression(code, *tree.children, **kwargs)
     if tree.data in ["bitwise_expression", "pow_expression", "mul_expression", "add_expression", "rel_expression", "eq_expression", "log_expression"]:
@@ -662,6 +696,12 @@ def compile_tree(code, tree, **kwargs):
         return compile_optional_parameter(code, *tree.children, **kwargs)
     if tree.data == "return_statement":
         return compile_return_statement(code, *tree.children, **kwargs)
+    if tree.data == "comment_statement":
+        return compile_comments(code, *tree.children, **kwargs)
+    if tree.data == "comment_expression":
+        return compile_comments(code, *tree.children, **kwargs)
+    if tree.data == "comment_atom":
+        return compile_comments(code, *tree.children, **kwargs)
     if tree.data == "block":
         return compile_block(code, *tree.children, **kwargs)
     if tree.data == "inline_block":
@@ -672,6 +712,9 @@ def compile_tree(code, tree, **kwargs):
         return compile_program(code, *tree.children, **kwargs)
     if tree.data == "empty":
         return code
+    if tree.data == "monadic_statement":
+        print("You can only use monadic statement (...?) inside a do-block")
+        exit(1)
     assert False, "Not implemented: '%s'" % tree.data
 
 

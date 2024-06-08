@@ -1,78 +1,78 @@
 
-local max(a, b) = if a > b then a else b
+let max(a, b) = if a > b then a else b
 
-local min(a, b) = if a < b then a else b
+let min(a, b) = if a < b then a else b
 
-local sqrt(x) = x ^ 0.5
+-- let sqrt(x) = x ^ 0.5
 
-local exp(x) = Math.e ^ x
+let exp(x) = Math.e ^ x
 
-local log(x) = math.log(x)
+let log(x) = math.log(x)
 
-local log10(x) = math.log10(x)
+let log10(x) = math.log10(x)
 
-local sin(x) = math.sin(x)
+let sin(x) = math.sin(x)
 
-local cos(x) = math.cos(x)
+let cos(x) = math.cos(x)
 
-local tan(x) = math.tan(x)
+let tan(x) = math.tan(x)
 
-local asin(x) = math.asin(x)
+let asin(x) = math.asin(x)
 
-local acos(x) = math.acos(x)
+let acos(x) = math.acos(x)
 
-local atan(x) = math.atan(x)
+let atan(x) = math.atan(x)
 
-local sinh(x) = math.sinh(x)
+let sinh(x) = math.sinh(x)
 
-local cosh(x) = math.cosh(x)
+let cosh(x) = math.cosh(x)
 
-local tanh(x) = math.tanh(x)
+let tanh(x) = math.tanh(x)
 
-local ceil(x) = math.ceil(x)
+let ceil(x) = math.ceil(x)
 
-local floor(x) = math.floor(x)
+let floor(x) = math.floor(x)
 
-local round(x) = math.floor(x + 0.5)
+-- let round(x) = math.floor(x + 0.5)
 
-local abs(x) = math.abs(x)
+let abs(x) = math.abs(x)
 
-local mod(x, y) = x % y
+let mod(x, y) = x % y
 
-local pow(x, y) = x ^ y
+let pow(x, y) = x ^ y
 
-local clamp(x, min, max) = Math.max(min, Math.min(max, x))
+let clamp(x, min, max) = Math.max(min, Math.min(max, x))
 
-local factorial(n) = if n == 0
+let factorial(n) = if n == 0
     then 1
     else n * Math.factorial(n - 1)
 
-local gcd(a, b) = if b == 0
+let gcd(a, b) = if b == 0
     then a
     else Math.gcd(b, a % b)
 
-local lcm(a, b) = a * b / Math.gcd(a, b)
+let lcm(a, b) = a * b / Math.gcd(a, b)
 
-local binomial(n, k) = do
-    local product_range(a, b, acc = 1) = if a <= b
+let binomial(n, k) = do
+    let product_range(a, b, acc = 1) = if a <= b
         then product_range(a + 1, b, acc * a)
         else acc
     return if k > n then 0
     else if k == 0 or k == n then 1
     else do
-        local new_k = Math.min(k, n - k)
+        let new_k = Math.min(k, n - k)
         return product_range(n - k + 1, n) // product_range(1, k)
     end
 end
 
-local dot(a, b, acc = 0) = do
+let dot(a, b, acc = 0) = do
     assert(#a == #b, "Math.dot(): vectors must have the same length")
     return if #a == 0
         then acc
         else Math.dot(a[2:], b[2:], acc + a[1] * b[1])
 end
 
-local cross(a, b) = do
+let cross(a, b) = do
     assert(#a == 3 and #b == 3, "Math.cross(): vectors must have length 3")
     return {
         a[2] * b[3] - a[3] * b[2],
@@ -82,7 +82,7 @@ local cross(a, b) = do
 end
 
 struct Constants = {
-    e = 2.71828182845904523536,
-    pi = 3.14159265358979323846,
+--    e = 2.71828182845904523536,
+--    pi = 3.14159265358979323846,
 }
 

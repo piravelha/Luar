@@ -23,4 +23,7 @@ struct Point(x, y) = {
     -- Unary
     operator unary_~() = Point(~x, ~y),
     operator unary_-() = Point(-x, -y),
+    -- Casting
+    cast Array = {x, y},
+    cast Complex = Complex(x, y),
 }

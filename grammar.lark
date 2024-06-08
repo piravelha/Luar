@@ -3,7 +3,7 @@
 
 program: include_statement* statement*
 
-block: "do" statement* return_statement? "end"
+block: "do" (statement | monadic_statement)* return_statement? "end"
 
 ?inline_block: statement* return_statement? | block | expression
 
@@ -17,7 +17,6 @@ block: "do" statement* return_statement? "end"
           | infix_expression
           | method_statement
           | assignment_statement
-          | monadic_statement
 
 monadic_statement: monadics "?"
 
@@ -37,7 +36,7 @@ argument_list: "(" (expression ("," expression)* ","?)? ")" | array
 
 inline_function_declaration: "inline" NAME no_pattern_parameter_list "=" expression
 
-function_declaration: "local" NAME parameter_list "=" expression
+function_declaration: "let" NAME parameter_list "=" expression
 
 struct_declaration: "struct" NAME parameter_list? "=" object
 
@@ -51,7 +50,7 @@ inline_variable_declaration: "inline" NAME "=" expression
 
 assignment_statement: NAME ASSIGN expression
 
-variable_declaration: "local" pattern "=" expression
+variable_declaration: "let" pattern "=" expression
 
 ?pattern: name_pattern
         | array_pattern
@@ -105,7 +104,8 @@ lambda_expression: lambda_parameters "to" expression
 ?atom: array
      | object
      | index_expression
-     | NUMBER
+     | INT
+     | COMPLEX
      | STRING
      | BOOLEAN
      | NIL
@@ -113,6 +113,7 @@ lambda_expression: lambda_parameters "to" expression
      | NAME
      | OPERATOR_ALONE
      | function_call
+     | cast_expression
      | property_access
      | method_access
 
@@ -124,9 +125,13 @@ table: "{" (table_field ("," table_field)* ","?)? "}"
 
 table_field: "[" expression "]" "=" expression
 
-object: "{" ((object_field | operator_field) ("," (object_field | operator_field))* ","?)? "}"
+object: "{" ((object_field | operator_field | cast_field) ("," (object_field | operator_field | cast_field))* ","?)? "}"
 
 operator_field: "operator" OPERATOR parameter_list "=" expression
+
+cast_field: "cast" NAME "=" expression
+
+cast_expression: expression "::" NAME
 
 object_field: NAME parameter_list? "=" expression
 
@@ -134,7 +139,7 @@ empty:
 
 ASSIGN: /=|\+=|-=|\*=|\/=|%=|\^=|\/\/=|&=|\|=|~=|<<=|>>=/
 
-UNARY: /not|-|\+|#|~/
+UNARY: /not|-(?!-)|\+|#|~/
 
 BITWISE: /&|\||~|<<|>>/
 
@@ -142,7 +147,7 @@ POW: /\^/
 
 MUL: /\*|\/\/|\/|%/
 
-ADD: /\+|-|\.\./
+ADD: /\+|-(?!-)|\.\./
 
 REL: /<\=|>\=|<|>/
 
@@ -150,11 +155,11 @@ LOG: /and|or/
 
 EQ: /==|!=/
 
-OPERATOR: /\+|-|\*|\/\/|\/|unary_-|%|\^|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#|tostring|index/
+OPERATOR: /\+|-(?!-)|\*|\/\/|\/|unary_-|%|\^|&|\||~|unary_~|<<|>>|==|<|>|\.\.|unary_#|tostring|index/
 
-OPERATOR_ALONE: /\((\+|-|\*|\/\/|\/|%|\^|&|\||~|<<|>>|==|!=|<=|>=|<|>|\.\.)\)/
+OPERATOR_ALONE: /\((\+|-(?!-)|\*|\/\/|\/|%|\^|&|\||~|<<|>>|==|!=|<=|>=|<|>|\.\.)\)/
 
-NAME: /(?!(true|false|and|or|not|to|if|then|else|local|inline|struct|include|do|operator|return)\b)[a-zA-Z_][a-zA-Z_0-9]*/
+NAME: /(?!(true|false|and|or|not|to|if|then|else|let|inline|struct|include|do|operator|return)\b)[a-zA-Z_][a-zA-Z_0-9]*/
 
 TEMPLATE_LITERAL: /`(?:[^`\\]|\\.)*`/
 
@@ -164,7 +169,9 @@ BOOLEAN: /true|false/
 
 STRING: /"(?:[^"\\]|\\.)*"/
 
-NUMBER: /\d+(\.\d+)?/
+COMPLEX: /(\d+(\.\d+)?)\s*[+\-]\s*(\d+(\.\d+)?)i/
+
+INT: /\d+/
 
 %ignore /\s+/
 %ignore /--.*/

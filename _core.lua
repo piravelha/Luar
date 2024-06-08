@@ -126,8 +126,99 @@ function _string(value)
     })
 end
 
+function typeof(obj)
+    if type(obj) ~= "table" then
+        return type(obj)
+    end
+
+    return getmetatable(obj).__type
+end
+
+local _int = {
+    __cast_Complex = function(value)
+        return Complex(value, 0)
+    end,
+    __cast_Fractional = function(value)
+        return Fractional(value, 1)
+    end,
+    __cast_Exponential = function(value)
+        return Exponential(value, 1)
+    end,
+}
+
+function _cast(obj, class)
+    if type(obj) == "number" then
+        if _int["__cast_" .. class] then
+            return _int["__cast_" .. class](obj)
+        end
+        error(string.format("Could not cast int '%s' to struct '%s'", obj, class))
+    end
+    if getmetatable(obj)["__cast_" .. class] then
+        return getmetatable(obj)["__cast_" .. class](obj)
+    end
+    if getmetatable(obj).__type == class then
+        return obj
+    end
+    error(string.format("Could not cast object '%s' to struct '%s'", obj, class))
+end
+
+function Fractional(numerator, denominator)
+    return setmetatable({
+
+    }, {
+        __tostring = function(_)
+            return "(" .. tostring(numerator) .. " / " .. tostring(denominator) .. ")"
+        end,
+    })
+end
+
+function Exponential(base, exponent)
+    return setmetatable({
+
+    }, {
+        __tostring = function(_)
+            return "(" .. tostring(base) .. "^" .. tostring(exponent) .. ")"
+        end,
+    })
+end
+
+function Complex(real, img)
+    return setmetatable({
+
+    }, {
+        __add = function(_, other)
+            other = _cast(other, "Complex")
+            return Complex(real + getmetatable(other).__args[1], img + getmetatable(other).__args[2])
+        end,
+        __sub = function(_, other)
+            other = _cast(other, "Complex")
+            return Complex(real - getmetatable(other).__args[1], img - getmetatable(other).__args[2])
+        end,
+        __mul = function(_, other)
+            local other_real = getmetatable(other).__args[1]
+            local other_img = getmetatable(other).__args[2]
+            return Complex(
+                real * other_real - img * other_img,
+                real * other_img + img * other_real
+            )
+        end,
+        __tostring = function(_)
+            if _lt(img, 0) == true then
+                return "(" .. tostring(real) .. " - " .. tostring(-img) .. "i)"
+            end
+            return "(" .. tostring(real) .. " + " .. tostring(img) .. "i)"
+        end,
+        __type = "Complex",
+        __args = {real, img}
+    })
+end
+
 function rawstr(obj)
     return getmetatable(obj).__value
+end
+
+function Array(...)
+    return array({...})
 end
 
 function array(values)
@@ -280,17 +371,23 @@ function unpack(tbl, index)
     if index > 1 then
         local new = {}
         for i, v in pairs(tbl) do
-            new[i] = v
+            if type(i) == "number" then
+                new[i] = v
+            end
         end
         table.remove(new, 1)
         return unpack(new, index - 1)
     end
     if #tbl == 1 then
         return tbl[1]
+    elseif #tbl == 0 then
+        return nil
     end
     local new = {}
     for i, v in pairs(tbl) do
-        new[i] = v
+        if type(i) == "number" then
+            new[i] = v
+        end
     end
     table.remove(new, 1)
     return tbl[1], unpack(new)
